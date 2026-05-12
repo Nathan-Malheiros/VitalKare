@@ -1,0 +1,59 @@
+# sdkconfig.defaults — Configurações base do ESP-IDF para o VitalKare
+# Estes valores são aplicados quando sdkconfig não existe ou é gerado do zero.
+# Não modificar manualmente — usar: idf.py menuconfig
+
+# =========================================================
+# TARGET
+# =========================================================
+CONFIG_IDF_TARGET="esp32s3"
+
+# =========================================================
+# FREERTOS
+# =========================================================
+CONFIG_FREERTOS_HZ=1000
+CONFIG_FREERTOS_UNICORE=n
+
+# =========================================================
+# FLASH
+# =========================================================
+CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+
+# =========================================================
+# LOGGING
+# =========================================================
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+CONFIG_LOG_MAXIMUM_LEVEL_DEBUG=y
+
+# =========================================================
+# Wi-Fi
+# =========================================================
+CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=10
+CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM=32
+CONFIG_ESP32_WIFI_IRAM_OPT=y
+
+# =========================================================
+# MQTT
+# =========================================================
+CONFIG_MQTT_BUFFER_SIZE=8192
+CONFIG_MQTT_TASK_STACK_SIZE=8192
+
+# =========================================================
+# PSRAM (ESP32-S3 com PSRAM integrada)
+# =========================================================
+CONFIG_ESP32S3_SPIRAM_SUPPORT=y
+CONFIG_SPIRAM_MODE_OCT=y
+CONFIG_SPIRAM_SPEED_80M=y
+
+# =========================================================
+# WATCHDOG
+# =========================================================
+CONFIG_ESP_TASK_WDT_TIMEOUT_S=30
+CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0=y
+CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1=y
+
+# =========================================================
+# SEGURANÇA
+# =========================================================
+CONFIG_NVS_ENCRYPTION=y

@@ -1,0 +1,51 @@
+# =========================================================
+# VitalKare — .gitignore
+# =========================================================
+
+# ---- Python / Backend ----
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+dist/
+*.egg-info/
+.venv/
+venv/
+env/
+.env
+*.env
+
+# ---- Node / Dashboard ----
+node_modules/
+dist/
+.npm/
+*.tsbuildinfo
+
+# ---- ESP-IDF / Firmware ----
+firmware/build/
+firmware/sdkconfig
+firmware/dependencies.lock
+firmware/managed_components/
+*.elf
+*.bin
+*.map
+*.lst
+
+# ---- Docker ----
+docker/mosquitto/passwd
+
+# ---- IDE ----
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ---- Logs / Dados temporários ----
+*.log
+*.csv
+*.jsonl
+output/

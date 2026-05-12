@@ -1,0 +1,123 @@
+name: vitalkare
+
+services:
+
+  # =========================================================
+  # MQTT BROKER
+  # =========================================================
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: vitalkare-mosquitto
+    ports:
+      - "1883:1883"
+      - "8883:8883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto/passwd:/mosquitto/config/passwd:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_logs:/mosquitto/log
+    restart: unless-stopped
+
+  # =========================================================
+  # BANCO DE DADOS (PostgreSQL + TimescaleDB)
+  # =========================================================
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    container_name: vitalkare-postgres
+    environment:
+      POSTGRES_DB: vitalkare
+      POSTGRES_USER: vitalkare
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vitalkare_dev}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vitalkare -d vitalkare"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =========================================================
+  # CACHE E FILAS
+  # =========================================================
+  redis:
+    image: redis:7-alpine
+    container_name: vitalkare-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =========================================================
+  # OBJECT STORAGE (MinIO)
+  # =========================================================
+  minio:
+    image: minio/minio:latest
+    container_name: vitalkare-minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =========================================================
+  # BACKEND (FastAPI)
+  # =========================================================
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: vitalkare-backend
+    env_file:
+      - ../backend/.env
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    restart: unless-stopped
+
+  # =========================================================
+  # DASHBOARD (React — produção)
+  # =========================================================
+  dashboard:
+    build:
+      context: ../dashboard
+      dockerfile: Dockerfile
+    container_name: vitalkare-dashboard
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  mosquitto_data:
+  mosquitto_logs:

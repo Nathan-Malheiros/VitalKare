@@ -1,0 +1,31 @@
+idf_component_register(
+    SRCS
+        "main.c"
+    INCLUDE_DIRS
+        "."
+        "../config"
+        "../components/core"
+        "../components/events"
+        "../components/network"
+        "../components/mqtt"
+        "../components/buttons"
+        "../components/sensors"
+        "../components/display"
+        "../components/storage"
+        "../components/audio"
+        "../components/camera"
+        "../components/watchdog"
+    REQUIRES
+        nvs_flash
+        esp_wifi
+        esp_event
+        esp_netif
+        mqtt
+        driver
+        freertos
+        esp_timer
+        fatfs
+        sdmmc
+        log
+        json
+)
