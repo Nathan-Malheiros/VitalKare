@@ -4,8 +4,38 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>VitalKare — Simulação do Dashboard</title>
+  <link rel="icon" type="image/png" href="Images/VitalKareIcon.png" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            vk: {
+              50:  '#e0fafa',
+              100: '#b2f0f0',
+              200: '#7ee5e5',
+              300: '#45d6d6',
+              400: '#00C9B8',
+              500: '#00BCD4',
+              600: '#0097A7',
+              700: '#00838F',
+              800: '#006978',
+              900: '#004D5C',
+            }
+          }
+        }
+      }
+    }
+  </script>
   <style>
+    html { font-size: 16px; }
+    body { background-color: #f0fdfe; }
+
+    #navbar {
+      background: linear-gradient(135deg, #00C9B8 0%, #0097A7 60%, #00838F 100%);
+    }
+
     @keyframes pulse-ring {
       0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.5); }
       50%       { box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
@@ -23,11 +53,20 @@
       to   { opacity: 1; transform: scale(1); }
     }
     .fade-in { animation: fade-in 0.25s ease-out; }
-
     .log-entry { animation: fade-in 0.2s ease-out; }
+
+    .nav-badge {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 6px;
+      padding: 4px 12px;
+      color: #fff;
+      font-size: 0.85rem;
+      font-family: monospace;
+    }
   </style>
 </head>
-<body class="bg-gray-100 min-h-screen font-sans">
+<body class="min-h-screen font-sans">
 
 <!-- ============================================================
      EMERGENCY BANNER (topo fixo)
@@ -37,25 +76,24 @@
 <!-- ============================================================
      NAVBAR
      ============================================================ -->
-<nav class="bg-white shadow-sm border-b border-gray-200 px-6 py-3 flex items-center justify-between mt-0" id="navbar">
+<nav id="navbar" class="px-6 py-3 flex items-center justify-between shadow-md mt-0">
   <div class="flex items-center gap-3">
-    <span class="text-2xl">🏥</span>
-    <span class="text-xl font-bold text-gray-800">VitalKare</span>
-    <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">SIMULAÇÃO</span>
+    <img src="Images/VitalKareLogo.png" alt="VitalKare" class="h-14 drop-shadow" />
+    <span class="text-xs font-bold px-2 py-0.5 rounded-full"
+          style="background:rgba(255,255,255,0.2);color:#fff;letter-spacing:.08em">SIMULAÇÃO</span>
   </div>
-  <div class="flex items-center gap-4 text-sm text-gray-600">
-    <span id="clock" class="font-mono bg-gray-50 border rounded px-2 py-1"></span>
-    <span class="flex items-center gap-1">
-      <span id="ws-dot" class="inline-block w-2 h-2 rounded-full bg-green-400"></span>
+  <div class="flex items-center gap-3">
+    <span id="clock" class="nav-badge"></span>
+    <span class="flex items-center gap-1.5 nav-badge">
+      <span id="ws-dot" class="inline-block w-2 h-2 rounded-full" style="background:#86efac"></span>
       <span id="ws-label">WebSocket: Conectado</span>
     </span>
-    <button onclick="toggleSimulation()"
-      id="btn-sim"
-      class="bg-indigo-600 text-white px-3 py-1 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition">
+    <button onclick="toggleSimulation()" id="btn-sim"
+      class="bg-white text-vk-700 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-vk-50 transition shadow">
       ⏸ Pausar
     </button>
     <button onclick="resetAll()"
-      class="bg-gray-200 text-gray-700 px-3 py-1 rounded-lg text-sm font-semibold hover:bg-gray-300 transition">
+      class="bg-white/20 border border-white/40 text-white px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-white/30 transition">
       🔄 Resetar
     </button>
   </div>
@@ -65,13 +103,13 @@
      STATS
      ============================================================ -->
 <div class="max-w-7xl mx-auto px-6 mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
-  <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-green-400">
+  <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-vk-500">
     <p class="text-xs text-gray-500 uppercase font-semibold">Online</p>
-    <p id="stat-online" class="text-3xl font-bold text-green-600 mt-1">0</p>
+    <p id="stat-online" class="text-3xl font-bold text-vk-600 mt-1">0</p>
   </div>
-  <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-400">
+  <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-vk-400">
     <p class="text-xs text-gray-500 uppercase font-semibold">Ocupados</p>
-    <p id="stat-occupied" class="text-3xl font-bold text-blue-600 mt-1">0</p>
+    <p id="stat-occupied" class="text-3xl font-bold text-vk-500 mt-1">0</p>
   </div>
   <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-red-500">
     <p class="text-xs text-gray-500 uppercase font-semibold">Emergências</p>
@@ -87,14 +125,14 @@
      BED GRID
      ============================================================ -->
 <main class="max-w-7xl mx-auto px-6 mt-6 pb-8">
-  <h2 class="text-lg font-semibold text-gray-700 mb-4">Leitos — Ala A</h2>
+  <h2 class="text-lg font-semibold text-vk-700 mb-4">Leitos — Ala A</h2>
   <div id="bed-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"></div>
 
   <!-- EVENT LOG -->
   <div class="mt-8">
     <div class="flex items-center justify-between mb-3">
-      <h2 class="text-lg font-semibold text-gray-700">Log de Eventos (WebSocket)</h2>
-      <button onclick="clearLog()" class="text-xs text-gray-400 hover:text-gray-600">Limpar</button>
+      <h2 class="text-lg font-semibold text-vk-700">Log de Eventos (WebSocket)</h2>
+      <button onclick="clearLog()" class="text-xs text-gray-400 hover:text-vk-600 transition">Limpar</button>
     </div>
     <div id="event-log"
          class="bg-gray-900 text-green-300 font-mono text-xs rounded-xl p-4 h-52 overflow-y-auto space-y-1">
@@ -154,8 +192,8 @@ function initBeds() {
 // RENDER — BED CARD
 // ---------------------------------------------------------------
 const STATUS_STYLES = {
-  ONLINE:           'border-green-400 bg-green-50',
-  OCCUPIED:         'border-blue-400 bg-blue-50',
+  ONLINE:           'border-[#00BCD4] bg-[#e0fafa]',
+  OCCUPIED:         'border-[#00C9B8] bg-[#f0fdfb]',
   EMERGENCY:        'border-red-600 bg-red-100 emergency-pulse ring-2 ring-red-500',
   CRITICAL_OFFLINE: 'border-red-400 bg-red-50',
   OFFLINE:          'border-gray-300 bg-gray-50 opacity-60',
@@ -170,8 +208,8 @@ const STATUS_LABEL = {
   FREE:             'Livre',
 };
 const STATUS_BADGE = {
-  ONLINE:           'bg-green-100 text-green-700',
-  OCCUPIED:         'bg-blue-100 text-blue-700',
+  ONLINE:           'bg-[#b2f0f0] text-[#00838F]',
+  OCCUPIED:         'bg-[#ccf5f5] text-[#0097A7]',
   EMERGENCY:        'bg-red-600 text-white',
   CRITICAL_OFFLINE: 'bg-red-100 text-red-700',
   OFFLINE:          'bg-gray-100 text-gray-500',
@@ -332,7 +370,7 @@ function dispatchEnvironment(bedNum, temp, hum) {
   bed.hum  = hum;
   bed.heartbeat = new Date().toISOString();
   updateCard(bedNum);
-  logEvent('environment', `🌡 environment · Leito ${bedNum}: ${temp.toFixed(1)}°C, ${hum.toFixed(0)}%`, '#bfdbfe');
+    logEvent('environment', `🌡 environment · Leito ${bedNum}: ${temp.toFixed(1)}°C, ${hum.toFixed(0)}%`, '#67e8f9');
 }
 
 // ---------------------------------------------------------------
@@ -463,12 +501,12 @@ function toggleSimulation() {
   const lbl = document.getElementById('ws-label');
   if (simRunning) {
     btn.textContent = '⏸ Pausar';
-    dot.classList.replace('bg-yellow-400','bg-green-400');
+    dot.style.backgroundColor = '#86efac';
     lbl.textContent = 'WebSocket: Conectado';
-    logEvent('system','▶ Simulação retomada','#a5f3fc');
+    logEvent('system','▶ Simulação retomada','#67e8f9');
   } else {
     btn.textContent = '▶ Retomar';
-    dot.classList.replace('bg-green-400','bg-yellow-400');
+    dot.style.backgroundColor = '#fde68a';
     lbl.textContent = 'WebSocket: Pausado';
     logEvent('system','⏸ Simulação pausada','#fde68a');
   }
@@ -479,13 +517,13 @@ function resetAll() {
   simTimers = [];
   simRunning = true;
   document.getElementById('btn-sim').textContent = '⏸ Pausar';
-  document.getElementById('ws-dot').className = 'inline-block w-2 h-2 rounded-full bg-green-400';
+  document.getElementById('ws-dot').style.backgroundColor = '#86efac';
   document.getElementById('ws-label').textContent = 'WebSocket: Conectado';
   document.getElementById('navbar').style.marginTop = '0';
   initBeds();
   renderAllBeds();
   clearLog();
-  logEvent('system','🔄 Dashboard resetado — novos dados carregados','#a5f3fc');
+  logEvent('system','🔄 Dashboard resetado — novos dados carregados','#67e8f9');
   startSimulation();
 }
 
@@ -496,7 +534,7 @@ document.addEventListener('DOMContentLoaded', () => {
   startClock();
   initBeds();
   renderAllBeds();
-  logEvent('system', '🟢 Dashboard iniciado — simulando WebSocket events...', '#a5f3fc');
+  logEvent('system', '🟢 Dashboard iniciado — simulando WebSocket events...', '#67e8f9');
   startSimulation();
 });
 </script>
