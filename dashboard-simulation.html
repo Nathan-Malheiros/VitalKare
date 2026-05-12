@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VitalKare — Simulação do Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes pulse-ring {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.5); }
+      50%       { box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
+    }
+    .emergency-pulse { animation: pulse-ring 1.2s ease-in-out infinite; }
+
+    @keyframes slide-down {
+      from { transform: translateY(-100%); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+    .banner-enter { animation: slide-down 0.35s ease-out; }
+
+    @keyframes fade-in {
+      from { opacity: 0; transform: scale(0.95); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .fade-in { animation: fade-in 0.25s ease-out; }
+
+    .log-entry { animation: fade-in 0.2s ease-out; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans">
+
+<!-- ============================================================
+     EMERGENCY BANNER (topo fixo)
+     ============================================================ -->
+<div id="emergency-banners" class="fixed top-0 left-0 right-0 z-50 space-y-1"></div>
+
+<!-- ============================================================
+     NAVBAR
+     ============================================================ -->
+<nav class="bg-white shadow-sm border-b border-gray-200 px-6 py-3 flex items-center justify-between mt-0" id="navbar">
+  <div class="flex items-center gap-3">
+    <span class="text-2xl">🏥</span>
+    <span class="text-xl font-bold text-gray-800">VitalKare</span>
+    <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">SIMULAÇÃO</span>
+  </div>
+  <div class="flex items-center gap-4 text-sm text-gray-600">
+    <span id="clock" class="font-mono bg-gray-50 border rounded px-2 py-1"></span>
+    <span class="flex items-center gap-1">
+      <span id="ws-dot" class="inline-block w-2 h-2 rounded-full bg-green-400"></span>
+      <span id="ws-label">WebSocket: Conectado</span>
+    </span>
+    <button onclick="toggleSimulation()"
+      id="btn-sim"
+      class="bg-indigo-600 text-white px-3 py-1 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition">
+      ⏸ Pausar
+    </button>
+    <button onclick="resetAll()"
+      class="bg-gray-200 text-gray-700 px-3 py-1 rounded-lg text-sm font-semibold hover:bg-gray-300 transition">
+      🔄 Resetar
+    </button>
+  </div>
+</nav>
+
+<!-- ============================================================
+     STATS
+     ============================================================ -->
+<div class="max-w-7xl mx-auto px-6 mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
+  <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-green-400">
+    <p class="text-xs text-gray-500 uppercase font-semibold">Online</p>
+    <p id="stat-online" class="text-3xl font-bold text-green-600 mt-1">0</p>
+  </div>
+  <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-400">
+    <p class="text-xs text-gray-500 uppercase font-semibold">Ocupados</p>
+    <p id="stat-occupied" class="text-3xl font-bold text-blue-600 mt-1">0</p>
+  </div>
+  <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-red-500">
+    <p class="text-xs text-gray-500 uppercase font-semibold">Emergências</p>
+    <p id="stat-emergency" class="text-3xl font-bold text-red-600 mt-1">0</p>
+  </div>
+  <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-gray-400">
+    <p class="text-xs text-gray-500 uppercase font-semibold">Offline</p>
+    <p id="stat-offline" class="text-3xl font-bold text-gray-500 mt-1">0</p>
+  </div>
+</div>
+
+<!-- ============================================================
+     BED GRID
+     ============================================================ -->
+<main class="max-w-7xl mx-auto px-6 mt-6 pb-8">
+  <h2 class="text-lg font-semibold text-gray-700 mb-4">Leitos — Ala A</h2>
+  <div id="bed-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"></div>
+
+  <!-- EVENT LOG -->
+  <div class="mt-8">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-lg font-semibold text-gray-700">Log de Eventos (WebSocket)</h2>
+      <button onclick="clearLog()" class="text-xs text-gray-400 hover:text-gray-600">Limpar</button>
+    </div>
+    <div id="event-log"
+         class="bg-gray-900 text-green-300 font-mono text-xs rounded-xl p-4 h-52 overflow-y-auto space-y-1">
+      <p class="text-gray-500">— aguardando eventos —</p>
+    </div>
+  </div>
+</main>
+
+<!-- ============================================================
+     JAVASCRIPT — SIMULAÇÃO
+     ============================================================ -->
+<script>
+// ---------------------------------------------------------------
+// ESTADO
+// ---------------------------------------------------------------
+const WARDS = ['Ala A'];
+const PATIENTS = [
+  'Carlos Souza','Maria Lima','João Ferreira','Ana Costa','Pedro Alves',
+  'Luiza Nunes','Bruno Dias','Fernanda Melo','Ricardo Pinto','Camila Rocha',
+  'Marcos Vieira','Patrícia Gomes','Rafael Teixeira','Juliana Barbosa',null,null,null,null,null,null
+];
+
+let simRunning = true;
+let simTimers = [];
+
+/** @type {Record<string,{id:string,number:string,ward:string,status:string,patient:string|null,temp:number|null,hum:number|null,heartbeat:string|null,firmware:string}>} */
+let beds = {};
+/** @type {{id:string,bed_id:string,ward:string,timestamp:string,acknowledged:boolean}[]} */
+let alerts = [];
+
+// ---------------------------------------------------------------
+// INIT
+// ---------------------------------------------------------------
+function initBeds() {
+  beds = {};
+  alerts = [];
+  for (let i = 1; i <= 20; i++) {
+    const num = String(i).padStart(2,'0');
+    const statuses = ['ONLINE','ONLINE','OCCUPIED','OCCUPIED','FREE','OFFLINE'];
+    const status = statuses[Math.floor(Math.random() * statuses.length)];
+    const patient = (status === 'OCCUPIED') ? PATIENTS[Math.floor(Math.random()*12)] : null;
+    beds[num] = {
+      id: `bed-${num}`,
+      number: num,
+      ward: 'Ala A',
+      status,
+      patient,
+      temp: (status !== 'OFFLINE' && status !== 'FREE') ? +(22 + Math.random()*6).toFixed(1) : null,
+      hum:  (status !== 'OFFLINE' && status !== 'FREE') ? +(50 + Math.random()*30).toFixed(0) : null,
+      heartbeat: (status !== 'OFFLINE') ? new Date().toISOString() : null,
+      firmware: 'v1.4.2'
+    };
+  }
+}
+
+// ---------------------------------------------------------------
+// RENDER — BED CARD
+// ---------------------------------------------------------------
+const STATUS_STYLES = {
+  ONLINE:           'border-green-400 bg-green-50',
+  OCCUPIED:         'border-blue-400 bg-blue-50',
+  EMERGENCY:        'border-red-600 bg-red-100 emergency-pulse ring-2 ring-red-500',
+  CRITICAL_OFFLINE: 'border-red-400 bg-red-50',
+  OFFLINE:          'border-gray-300 bg-gray-50 opacity-60',
+  FREE:             'border-dashed border-gray-300 bg-white',
+};
+const STATUS_LABEL = {
+  ONLINE:           'Online',
+  OCCUPIED:         'Ocupado',
+  EMERGENCY:        '⚠ Emergência',
+  CRITICAL_OFFLINE: 'Crítico / Offline',
+  OFFLINE:          'Offline',
+  FREE:             'Livre',
+};
+const STATUS_BADGE = {
+  ONLINE:           'bg-green-100 text-green-700',
+  OCCUPIED:         'bg-blue-100 text-blue-700',
+  EMERGENCY:        'bg-red-600 text-white',
+  CRITICAL_OFFLINE: 'bg-red-100 text-red-700',
+  OFFLINE:          'bg-gray-100 text-gray-500',
+  FREE:             'bg-gray-100 text-gray-400',
+};
+
+function renderBed(bed) {
+  const styles = STATUS_STYLES[bed.status] || STATUS_STYLES.OFFLINE;
+  const badge  = STATUS_BADGE[bed.status]  || STATUS_BADGE.OFFLINE;
+  const label  = STATUS_LABEL[bed.status]  || bed.status;
+
+  const patientHtml = bed.patient
+    ? `<p class="text-sm text-gray-700 mb-1 truncate"><span class="font-medium">Paciente:</span> ${bed.patient}</p>`
+    : '';
+
+  const envHtml = (bed.temp != null)
+    ? `<p class="text-xs text-gray-500">🌡 ${bed.temp.toFixed(1)}°C &nbsp; 💧 ${bed.hum}%</p>`
+    : '';
+
+  const heartbeatHtml = bed.heartbeat
+    ? `<p class="text-xs text-gray-400 mt-1">Último contato: ${new Date(bed.heartbeat).toLocaleTimeString('pt-BR')}</p>`
+    : '';
+
+  const ackBtn = (bed.status === 'EMERGENCY')
+    ? `<button onclick="acknowledgeFromCard('${bed.number}')"
+         class="mt-3 w-full rounded-lg bg-red-600 py-1.5 text-sm font-semibold text-white hover:bg-red-700 transition">
+         Confirmar Atendimento
+       </button>`
+    : '';
+
+  return `
+    <div id="card-${bed.number}" class="rounded-xl border-2 p-4 shadow-sm transition-all fade-in ${styles}">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-lg font-bold text-gray-800">Leito ${bed.number}</span>
+        <span class="text-xs font-semibold px-2 py-0.5 rounded-full ${badge}">${label}</span>
+      </div>
+      ${patientHtml}
+      ${envHtml}
+      ${heartbeatHtml}
+      ${ackBtn}
+    </div>`;
+}
+
+function renderAllBeds() {
+  const grid = document.getElementById('bed-grid');
+  grid.innerHTML = Object.values(beds)
+    .sort((a,b) => a.number.localeCompare(b.number))
+    .map(renderBed).join('');
+  updateStats();
+}
+
+function updateCard(bedNum) {
+  const card = document.getElementById(`card-${bedNum}`);
+  if (!card) return;
+  const bed = beds[bedNum];
+  if (!bed) return;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = renderBed(bed);
+  const newCard = tmp.firstElementChild;
+  card.replaceWith(newCard);
+  updateStats();
+}
+
+// ---------------------------------------------------------------
+// STATS
+// ---------------------------------------------------------------
+function updateStats() {
+  const counts = {ONLINE:0, OCCUPIED:0, EMERGENCY:0, OFFLINE:0, FREE:0, CRITICAL_OFFLINE:0};
+  Object.values(beds).forEach(b => { counts[b.status] = (counts[b.status]||0)+1; });
+  document.getElementById('stat-online').textContent    = counts.ONLINE + counts.OCCUPIED;
+  document.getElementById('stat-occupied').textContent  = counts.OCCUPIED;
+  document.getElementById('stat-emergency').textContent = counts.EMERGENCY;
+  document.getElementById('stat-offline').textContent   = counts.OFFLINE + counts.CRITICAL_OFFLINE;
+}
+
+// ---------------------------------------------------------------
+// EMERGENCY BANNER
+// ---------------------------------------------------------------
+function renderBanners() {
+  const container = document.getElementById('emergency-banners');
+  const active = alerts.filter(a => !a.acknowledged);
+  container.innerHTML = active.map(a => `
+    <div class="flex items-center justify-between bg-red-600 px-6 py-3 text-white shadow-lg banner-enter">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl">🚨</span>
+        <div>
+          <p class="font-bold text-lg">EMERGÊNCIA — Leito ${a.bed_id}</p>
+          <p class="text-sm opacity-90">Ala: ${a.ward} · ${new Date(a.timestamp).toLocaleTimeString('pt-BR')}</p>
+        </div>
+      </div>
+      <button onclick="acknowledgeAlert('${a.id}')"
+        class="rounded-lg border-2 border-white px-4 py-1.5 font-semibold hover:bg-red-700 transition text-sm">
+        Confirmar Atendimento
+      </button>
+    </div>`).join('');
+
+  // empurra navbar
+  document.getElementById('navbar').style.marginTop = (active.length * 64) + 'px';
+}
+
+// ---------------------------------------------------------------
+// ACKNOWLEDGE
+// ---------------------------------------------------------------
+function acknowledgeAlert(alertId) {
+  const alert = alerts.find(a => a.id === alertId);
+  if (!alert) return;
+  alert.acknowledged = true;
+  // volta status do leito
+  const bed = beds[alert.bed_id];
+  if (bed) {
+    bed.status = bed.patient ? 'OCCUPIED' : 'ONLINE';
+    updateCard(alert.bed_id);
+  }
+  renderBanners();
+  logEvent('acknowledge', `✅ Emergência no Leito ${alert.bed_id} atendida`, '#86efac');
+}
+
+function acknowledgeFromCard(bedNum) {
+  const alert = alerts.find(a => a.bed_id === bedNum && !a.acknowledged);
+  if (alert) acknowledgeAlert(alert.id);
+}
+
+// ---------------------------------------------------------------
+// WEBSOCKET SIMULATION EVENTS
+// ---------------------------------------------------------------
+function dispatchBedStatus(bedNum, status) {
+  const bed = beds[bedNum];
+  if (!bed) return;
+  const prev = bed.status;
+  bed.status = status;
+  if (status !== 'OFFLINE' && status !== 'FREE' && status !== 'CRITICAL_OFFLINE') {
+    bed.heartbeat = new Date().toISOString();
+  }
+  updateCard(bedNum);
+  logEvent('bed_status',
+    `📡 bed_status · Leito ${bedNum}: ${prev} → <strong>${status}</strong>`,
+    status === 'EMERGENCY' ? '#fca5a5' : status === 'OFFLINE' ? '#d1d5db' : '#6ee7b7');
+}
+
+function dispatchEmergency(bedNum) {
+  const bed = beds[bedNum];
+  if (!bed || bed.status === 'EMERGENCY') return;
+  const alertId = `evt-${Date.now()}-${bedNum}`;
+  const ts = new Date().toISOString();
+  alerts.unshift({ id: alertId, bed_id: bedNum, ward: bed.ward, timestamp: ts, acknowledged: false });
+  if (alerts.length > 100) alerts.splice(100);
+  bed.status = 'EMERGENCY';
+  bed.heartbeat = ts;
+  updateCard(bedNum);
+  renderBanners();
+  logEvent('emergency', `🚨 emergency · Leito ${bedNum} | ${bed.ward} | ${new Date(ts).toLocaleTimeString('pt-BR')}`, '#fca5a5');
+}
+
+function dispatchEnvironment(bedNum, temp, hum) {
+  const bed = beds[bedNum];
+  if (!bed) return;
+  bed.temp = temp;
+  bed.hum  = hum;
+  bed.heartbeat = new Date().toISOString();
+  updateCard(bedNum);
+  logEvent('environment', `🌡 environment · Leito ${bedNum}: ${temp.toFixed(1)}°C, ${hum.toFixed(0)}%`, '#bfdbfe');
+}
+
+// ---------------------------------------------------------------
+// AUTO SIMULATION
+// ---------------------------------------------------------------
+let simTick = 0;
+
+const SCENARIOS = [
+  // Cenário 1 — heartbeats normais
+  () => {
+    const onlineBeds = Object.values(beds).filter(b => b.status === 'ONLINE' || b.status === 'OCCUPIED');
+    if (!onlineBeds.length) return;
+    const bed = onlineBeds[Math.floor(Math.random() * onlineBeds.length)];
+    const temp = +(22 + Math.random()*6).toFixed(1);
+    const hum  = +(50 + Math.random()*30).toFixed(0);
+    dispatchEnvironment(bed.number, temp, hum);
+  },
+
+  // Cenário 2 — leito fica offline
+  () => {
+    const online = Object.values(beds).filter(b => b.status === 'ONLINE');
+    if (!online.length) return;
+    const bed = online[Math.floor(Math.random() * online.length)];
+    dispatchBedStatus(bed.number, 'OFFLINE');
+    // reconecta após 8 s
+    delayedSim(8000, () => dispatchBedStatus(bed.number, 'ONLINE'));
+  },
+
+  // Cenário 3 — EMERGÊNCIA
+  () => {
+    const active = Object.values(beds).filter(b => b.status === 'ONLINE' || b.status === 'OCCUPIED');
+    if (!active.length) return;
+    const bed = active[Math.floor(Math.random() * active.length)];
+    dispatchEmergency(bed.number);
+  },
+
+  // Cenário 4 — leito muda para OCCUPIED (paciente deu entrada)
+  () => {
+    const free = Object.values(beds).filter(b => b.status === 'FREE' || b.status === 'ONLINE');
+    if (!free.length) return;
+    const bed = free[Math.floor(Math.random() * free.length)];
+    bed.patient = PATIENTS[Math.floor(Math.random()*12)] || 'Paciente Anônimo';
+    dispatchBedStatus(bed.number, 'OCCUPIED');
+  },
+
+  // Cenário 5 — CRITICAL_OFFLINE (leito ocupado fica offline)
+  () => {
+    const occupied = Object.values(beds).filter(b => b.status === 'OCCUPIED');
+    if (!occupied.length) return;
+    const bed = occupied[Math.floor(Math.random() * occupied.length)];
+    dispatchBedStatus(bed.number, 'CRITICAL_OFFLINE');
+    delayedSim(12000, () => dispatchBedStatus(bed.number, 'OCCUPIED'));
+  },
+];
+
+function runScenario() {
+  if (!simRunning) return;
+  simTick++;
+  // Escolhe cenário com pesos: heartbeats frequentes, emergências raras
+  const weights = [50, 15, 10, 15, 10];
+  const total = weights.reduce((s,w) => s+w, 0);
+  let r = Math.random() * total;
+  let idx = 0;
+  for (let i = 0; i < weights.length; i++) {
+    r -= weights[i];
+    if (r <= 0) { idx = i; break; }
+  }
+  SCENARIOS[idx]();
+}
+
+function delayedSim(ms, fn) {
+  const t = setTimeout(() => { if (simRunning) fn(); }, ms);
+  simTimers.push(t);
+}
+
+function startSimulation() {
+  // evento a cada 2–4s
+  const tick = () => {
+    if (!simRunning) { simTimers.push(setTimeout(tick, 500)); return; }
+    runScenario();
+    const next = 2000 + Math.random() * 2000;
+    simTimers.push(setTimeout(tick, next));
+  };
+  simTimers.push(setTimeout(tick, 1500));
+}
+
+// ---------------------------------------------------------------
+// LOG
+// ---------------------------------------------------------------
+function logEvent(type, html, color='#d1d5db') {
+  const log = document.getElementById('event-log');
+  const blank = log.querySelector('p.text-gray-500');
+  if (blank) blank.remove();
+
+  const ts = new Date().toLocaleTimeString('pt-BR');
+  const p = document.createElement('p');
+  p.className = 'log-entry';
+  p.style.color = color;
+  p.innerHTML = `<span class="text-gray-500">[${ts}]</span> ${html}`;
+  log.prepend(p);
+
+  // mantém no máx 80 linhas
+  while (log.children.length > 80) log.removeChild(log.lastChild);
+}
+
+function clearLog() {
+  document.getElementById('event-log').innerHTML =
+    '<p class="text-gray-500">— log limpo —</p>';
+}
+
+// ---------------------------------------------------------------
+// CLOCK
+// ---------------------------------------------------------------
+function startClock() {
+  const el = document.getElementById('clock');
+  const update = () => el.textContent = new Date().toLocaleTimeString('pt-BR');
+  update();
+  setInterval(update, 1000);
+}
+
+// ---------------------------------------------------------------
+// CONTROLS
+// ---------------------------------------------------------------
+function toggleSimulation() {
+  simRunning = !simRunning;
+  const btn = document.getElementById('btn-sim');
+  const dot = document.getElementById('ws-dot');
+  const lbl = document.getElementById('ws-label');
+  if (simRunning) {
+    btn.textContent = '⏸ Pausar';
+    dot.classList.replace('bg-yellow-400','bg-green-400');
+    lbl.textContent = 'WebSocket: Conectado';
+    logEvent('system','▶ Simulação retomada','#a5f3fc');
+  } else {
+    btn.textContent = '▶ Retomar';
+    dot.classList.replace('bg-green-400','bg-yellow-400');
+    lbl.textContent = 'WebSocket: Pausado';
+    logEvent('system','⏸ Simulação pausada','#fde68a');
+  }
+}
+
+function resetAll() {
+  simTimers.forEach(clearTimeout);
+  simTimers = [];
+  simRunning = true;
+  document.getElementById('btn-sim').textContent = '⏸ Pausar';
+  document.getElementById('ws-dot').className = 'inline-block w-2 h-2 rounded-full bg-green-400';
+  document.getElementById('ws-label').textContent = 'WebSocket: Conectado';
+  document.getElementById('navbar').style.marginTop = '0';
+  initBeds();
+  renderAllBeds();
+  clearLog();
+  logEvent('system','🔄 Dashboard resetado — novos dados carregados','#a5f3fc');
+  startSimulation();
+}
+
+// ---------------------------------------------------------------
+// BOOTSTRAP
+// ---------------------------------------------------------------
+document.addEventListener('DOMContentLoaded', () => {
+  startClock();
+  initBeds();
+  renderAllBeds();
+  logEvent('system', '🟢 Dashboard iniciado — simulando WebSocket events...', '#a5f3fc');
+  startSimulation();
+});
+</script>
+</body>
+</html>
