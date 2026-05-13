@@ -3,10 +3,10 @@
  * @brief Implementação do cliente MQTT VitalKare
  */
 
-#include "mqtt_client.h"
+#include "mqtt_client.h"      /* esp-mqtt (componente oficial) */
+#include "vitalkare_mqtt.h"  /* interface VitalKare */
 #include "esp_log.h"
 #include "esp_timer.h"
-#include "mqtt_client.h"      /* esp-mqtt */
 #include "cJSON.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
@@ -248,6 +248,31 @@ esp_err_t vitalkare_mqtt_publish_environment(float temp_c, float humidity_pct,
 
     int ret = vitalkare_mqtt_publish(topic, payload, strlen(payload),
                                      MQTT_QOS_SENSOR, true);
+    return (ret >= 0) ? ESP_OK : ESP_FAIL;
+}
+
+esp_err_t vitalkare_mqtt_publish_audio(const audio_recording_t *rec)
+{
+    if (!rec || !rec->data || rec->size_bytes == 0) return ESP_ERR_INVALID_ARG;
+    /* Publica payload binário bruto — backend decodifica como PCM 16-bit */
+    const device_info_t *dev = core_get_device_info();
+    char topic[MQTT_MAX_TOPIC_LEN];
+    snprintf(topic, sizeof(topic), MQTT_TOPIC_AUDIO,
+             dev->ward_id, dev->device_id);
+    int ret = vitalkare_mqtt_publish(topic, rec->data, (int)rec->size_bytes,
+                                     MQTT_QOS_AUDIO, false);
+    return (ret >= 0) ? ESP_OK : ESP_FAIL;
+}
+
+esp_err_t vitalkare_mqtt_publish_camera(const camera_frame_t *frame)
+{
+    if (!frame || !frame->data || frame->size_bytes == 0) return ESP_ERR_INVALID_ARG;
+    const device_info_t *dev = core_get_device_info();
+    char topic[MQTT_MAX_TOPIC_LEN];
+    snprintf(topic, sizeof(topic), MQTT_TOPIC_CAMERA,
+             dev->ward_id, dev->device_id);
+    int ret = vitalkare_mqtt_publish(topic, frame->data, (int)frame->size_bytes,
+                                     MQTT_QOS_STATUS, false);
     return (ret >= 0) ? ESP_OK : ESP_FAIL;
 }
 

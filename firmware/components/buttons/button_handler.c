@@ -41,7 +41,7 @@ static void IRAM_ATTR gpio_isr_handler(void *arg)
     };
     BaseType_t higher_prio_woken = pdFALSE;
     xQueueSendFromISR(s_btn_queue, &evt, &higher_prio_woken);
-    portYIELD_FROM_ISR_ARG(higher_prio_woken);
+    portYIELD_FROM_ISR(higher_prio_woken);
 }
 
 /* =========================================================

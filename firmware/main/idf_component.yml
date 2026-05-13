@@ -1,0 +1,7 @@
+## idf_component.yml
+## Dependências de componentes gerenciados do IDF Component Registry
+
+dependencies:
+  ## Componente oficial da Espressif para câmeras OV (OV5640, OV2640, etc.)
+  espressif/esp32-camera:
+    version: ">=2.0.0"

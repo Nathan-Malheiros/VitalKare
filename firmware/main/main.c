@@ -34,7 +34,7 @@
 #include "components/core/core.h"
 #include "components/events/event_dispatcher.h"
 #include "components/network/wifi_manager.h"
-#include "components/mqtt/mqtt_client.h"
+#include "components/mqtt/vitalkare_mqtt.h"
 #include "components/buttons/button_handler.h"
 #include "components/sensors/hdc1080.h"
 #include "components/sensors/mpu6050.h"
@@ -101,11 +101,15 @@ static void on_emergency_event(const system_event_t *evt)
               "Botão de emergência pressionado", NULL);
 }
 
+static TaskHandle_t s_audio_task_handle = NULL;
+
 static void on_request_event(const system_event_t *evt)
 {
     ESP_LOGI(TAG, "Solicitação do paciente");
-    /* Fase 4: inicia gravação de áudio */
-    /* audio_capture_start(); */
+    /* Notifica a task de áudio para iniciar gravação */
+    if (s_audio_task_handle) {
+        xTaskNotifyGive(s_audio_task_handle);
+    }
 
     log_write(LOG_LEVEL_INFO, LOG_CAT_BUTTON,
               "Botão de solicitação pressionado", NULL);
@@ -195,11 +199,11 @@ static void init_hardware(void)
     /* Botões */
     ESP_ERROR_CHECK(button_handler_init());
 
-    /* Câmera (Fase 5) */
-    /* camera_driver_init(); */
+    /* Câmera */
+    camera_driver_init();
 
-    /* Áudio (Fase 4) */
-    /* audio_capture_init(); */
+    /* Áudio */
+    audio_capture_init();
 
     ESP_LOGI(TAG, "Hardware inicializado");
 }
@@ -257,11 +261,11 @@ static void create_tasks(void)
                 "mqtt", TASK_STACK_MQTT,
                 NULL, TASK_PRIO_MQTT, NULL);
 
-    /* Áudio (Fase 4) */
-    /* xTaskCreate(task_audio_capture, "audio", TASK_STACK_AUDIO, NULL, TASK_PRIO_AUDIO, NULL); */
+    /* Áudio */
+    xTaskCreate(task_audio_capture, "audio", TASK_STACK_AUDIO, NULL, TASK_PRIO_AUDIO, &s_audio_task_handle);
 
-    /* Câmera (Fase 5) */
-    /* xTaskCreate(task_camera_stream, "camera", TASK_STACK_CAMERA, NULL, TASK_PRIO_CAMERA, NULL); */
+    /* Câmera */
+    xTaskCreate(task_camera_stream, "camera", TASK_STACK_CAMERA, NULL, TASK_PRIO_CAMERA, NULL);
 
     ESP_LOGI(TAG, "Tasks criadas. Heap livre: %lu bytes",
              (unsigned long)esp_get_free_heap_size());

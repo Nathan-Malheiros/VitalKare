@@ -4,7 +4,7 @@ VitalKare — Modelos SQLAlchemy: Event (Evento)
 
 import uuid
 import enum
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import String, Integer, DateTime, ForeignKey, JSON, Enum as SAEnum
@@ -39,11 +39,12 @@ class Event(Base):
     status:      Mapped[EventStatus]    = mapped_column(SAEnum(EventStatus), default=EventStatus.PENDING)
     payload:     Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     source_topic:Mapped[Optional[str]]  = mapped_column(String(200), nullable=True)
-    created_at:  Mapped[datetime]       = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    created_at:  Mapped[datetime]       = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    bed:             Mapped["Bed"]                  = relationship("Bed", back_populates="events")  # type: ignore
-    acknowledgements:Mapped[list["Acknowledgement"]]= relationship("Acknowledgement", back_populates="event")
+    bed:             Mapped["Bed"]                   = relationship("Bed", back_populates="events")  # type: ignore
+    acknowledgements:Mapped[list["Acknowledgement"]] = relationship("Acknowledgement", back_populates="event")
+    audio_records:   Mapped[list["AudioRecord"]]     = relationship("AudioRecord", back_populates="event")  # type: ignore
 
 
 class Acknowledgement(Base):
@@ -53,7 +54,7 @@ class Acknowledgement(Base):
     id:                    Mapped[uuid.UUID]     = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     event_id:              Mapped[uuid.UUID]     = mapped_column(UUID(as_uuid=True), ForeignKey("events.id"), nullable=False)
     operator_id:           Mapped[uuid.UUID]     = mapped_column(UUID(as_uuid=True), ForeignKey("operators.id"), nullable=False)
-    ack_at:                Mapped[datetime]      = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    ack_at:                Mapped[datetime]      = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     response_time_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     notes:                 Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
 

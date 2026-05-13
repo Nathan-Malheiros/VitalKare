@@ -13,11 +13,13 @@
 #ifndef VITALKARE_MQTT_CONFIG_H
 #define VITALKARE_MQTT_CONFIG_H
 
+#include "device_config.h"
+
 /* =========================================================
  * BROKER
  * ========================================================= */
 /** @note Substituir em produção por hostname real ou IP do broker. */
-#define MQTT_BROKER_HOST_DEV        "192.168.1.100"
+#define MQTT_BROKER_HOST_DEV        DEVICE_MQTT_HOST
 #define MQTT_BROKER_PORT_PLAIN      1883    /**< Desenvolvimento — sem TLS */
 #define MQTT_BROKER_PORT_TLS        8883    /**< Produção — com TLS 1.3 */
 #define MQTT_KEEPALIVE_S            60

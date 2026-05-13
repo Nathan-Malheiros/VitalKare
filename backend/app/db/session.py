@@ -33,7 +33,7 @@ class Base(DeclarativeBase):
 
 async def init_db() -> None:
     """Cria as tabelas (apenas em desenvolvimento). Em produção use Alembic."""
-    from app.models import bed, patient, event, operator  # noqa: F401
+    from app.models import bed, patient, event, operator, audio_record, environment_reading  # noqa: F401
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 

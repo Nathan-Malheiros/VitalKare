@@ -4,7 +4,7 @@ VitalKare — Modelo SQLAlchemy: Operator (Equipe)
 
 import uuid
 import enum
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import String, Boolean, DateTime, Enum as SAEnum
@@ -31,4 +31,4 @@ class Operator(Base):
     password_hash: Mapped[str]                = mapped_column(String(200), nullable=False)
     is_active:     Mapped[bool]               = mapped_column(Boolean, default=True)
     last_login:    Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    created_at:    Mapped[datetime]           = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    created_at:    Mapped[datetime]           = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

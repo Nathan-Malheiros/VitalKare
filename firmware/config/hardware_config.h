@@ -75,6 +75,13 @@
 #define HW_CAM_HREF_GPIO        7
 #define HW_CAM_PCLK_GPIO        13
 #define HW_CAM_XCLK_FREQ_HZ     20000000    /**< 20 MHz */
+#define HW_CAM_JPEG_QUALITY     12          /**< 0=melhor, 63=pior (JPEG) */
+
+/* Alias de áudio para audio_capture.c */
+#define HW_I2S_PORT             HW_MIC_I2S_PORT
+#define HW_AUDIO_CLK_GPIO       HW_MIC_CLK_GPIO
+#define HW_AUDIO_DATA_GPIO      HW_MIC_DATA_GPIO
+#define HW_AUDIO_SAMPLE_RATE_HZ HW_MIC_SAMPLE_RATE_HZ
 
 /* =========================================================
  * CARTÃO SD — SDMMC

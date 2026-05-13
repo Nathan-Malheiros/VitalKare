@@ -3,8 +3,7 @@ VitalKare — Modelos SQLAlchemy: Patient (Paciente) e BedAssignment (Alocação
 """
 
 import uuid
-import enum
-from datetime import datetime, date
+from datetime import date, datetime, timezone
 from typing import Optional
 
 from sqlalchemy import String, Date, DateTime, ForeignKey, Boolean, Text
@@ -24,7 +23,7 @@ class Patient(Base):
     admission_date:        Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     discharge_date:        Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     notes:                 Mapped[Optional[str]]  = mapped_column(Text, nullable=True)
-    created_at:            Mapped[datetime]       = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    created_at:            Mapped[datetime]       = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     assignments: Mapped[list["BedAssignment"]] = relationship("BedAssignment", back_populates="patient")
 
@@ -36,7 +35,7 @@ class BedAssignment(Base):
     id:          Mapped[uuid.UUID]          = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     bed_id:      Mapped[uuid.UUID]          = mapped_column(UUID(as_uuid=True), ForeignKey("beds.id"), nullable=False)
     patient_id:  Mapped[uuid.UUID]          = mapped_column(UUID(as_uuid=True), ForeignKey("patients.id"), nullable=False)
-    assigned_at: Mapped[datetime]           = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    assigned_at: Mapped[datetime]           = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     released_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     is_active:   Mapped[bool]               = mapped_column(Boolean, default=True)
 

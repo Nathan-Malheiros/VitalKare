@@ -3,7 +3,7 @@ VitalKare — Modelos SQLAlchemy: Bed (Leito) e Ward (Ala)
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import String, Integer, Boolean, DateTime, ForeignKey, JSON, Enum as SAEnum
@@ -30,7 +30,7 @@ class Ward(Base):
     name:       Mapped[str]          = mapped_column(String(100), nullable=False)
     floor:      Mapped[Optional[int]]= mapped_column(Integer, nullable=True)
     capacity:   Mapped[int]          = mapped_column(Integer, default=0)
-    created_at: Mapped[datetime]     = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    created_at: Mapped[datetime]     = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     beds: Mapped[list["Bed"]] = relationship("Bed", back_populates="ward")
 
@@ -49,8 +49,10 @@ class Bed(Base):
     wifi_rssi:        Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     free_heap_bytes:  Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     metadata_json:    Mapped[Optional[dict]]= mapped_column(JSON, nullable=True)
-    created_at:       Mapped[datetime]      = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    created_at:       Mapped[datetime]      = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
-    ward:        Mapped["Ward"]              = relationship("Ward", back_populates="beds")
-    events:      Mapped[list["Event"]]       = relationship("Event", back_populates="bed")  # type: ignore
-    assignments: Mapped[list["BedAssignment"]] = relationship("BedAssignment", back_populates="bed")  # type: ignore
+    ward:                Mapped["Ward"]                      = relationship("Ward", back_populates="beds")
+    events:              Mapped[list["Event"]]               = relationship("Event", back_populates="bed")  # type: ignore
+    assignments:         Mapped[list["BedAssignment"]]       = relationship("BedAssignment", back_populates="bed")  # type: ignore
+    audio_records:       Mapped[list["AudioRecord"]]         = relationship("AudioRecord", back_populates="bed")  # type: ignore
+    environment_readings: Mapped[list["EnvironmentReading"]] = relationship("EnvironmentReading", back_populates="bed")  # type: ignore

@@ -8,6 +8,7 @@
 
 #include "wifi_manager.h"
 #include "esp_log.h"
+#include "../../config/device_config.h"
 #include "esp_wifi.h"
 #include "esp_event.h"
 #include "esp_netif.h"
@@ -130,10 +131,16 @@ esp_err_t wifi_manager_init(void)
     }
 
     if (strlen(ssid) == 0) {
-        ESP_LOGW(TAG, "Credenciais Wi-Fi não encontradas em NVS. "
-                      "Configure via provisioning.");
-        /* TODO: Iniciar modo de provisionamento (BLE/SoftAP) */
-        return ESP_ERR_NOT_FOUND;
+        /* Fallback para credenciais compiladas em device_config.h */
+        if (DEVICE_WIFI_SSID[0] != '\0') {
+            ESP_LOGW(TAG, "NVS vazia — usando credenciais de device_config.h (%s)",
+                     DEVICE_WIFI_SSID);
+            strncpy(ssid, DEVICE_WIFI_SSID, sizeof(ssid) - 1);
+            strncpy(pass, DEVICE_WIFI_PASS, sizeof(pass) - 1);
+        } else {
+            ESP_LOGE(TAG, "Nenhuma credencial Wi-Fi disponível. Configure NVS ou device_config.h.");
+            return ESP_ERR_NOT_FOUND;
+        }
     }
 
     wifi_config_t wifi_cfg = {0};

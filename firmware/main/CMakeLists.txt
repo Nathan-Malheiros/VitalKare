@@ -1,8 +1,26 @@
 idf_component_register(
     SRCS
         "main.c"
+        "../components/network/wifi_manager.c"
+        "../components/mqtt/mqtt_client.c"
+        "../components/buttons/button_handler.c"
+        "../components/events/event_dispatcher.c"
+        "../components/sensors/hdc1080.c"
+        "../components/sensors/ldr.c"
+        "../components/sensors/mpu6050.c"
+        "../components/sensors/sensor_task.c"
+        "../components/core/core.c"
+        "../components/display/oled_driver.c"
+        "../components/display/ui_renderer.c"
+        "../components/storage/sd_manager.c"
+        "../components/storage/log_writer.c"
+        "../components/storage/offline_cache.c"
+        "../components/audio/audio_capture.c"
+        "../components/camera/camera_driver.c"
+        "../components/watchdog/watchdog.c"
     INCLUDE_DIRS
         "."
+        ".."
         "../config"
         "../components/core"
         "../components/events"
@@ -28,4 +46,6 @@ idf_component_register(
         sdmmc
         log
         json
+        esp_adc
+        ledc
 )
