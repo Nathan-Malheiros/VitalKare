@@ -4,6 +4,7 @@ import type { Bed } from '@/store/bedsStore'
 interface BedCardProps {
   bed: Bed
   onAcknowledge?: (bedId: string) => void
+  onClick?: (bedId: string) => void
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -24,11 +25,21 @@ const STATUS_LABEL: Record<string, string> = {
   FREE:             'Livre',
 }
 
-export function BedCard({ bed, onAcknowledge }: BedCardProps) {
+const CLICKABLE_STATUSES = new Set(['ONLINE', 'OCCUPIED', 'EMERGENCY'])
+
+export function BedCard({ bed, onAcknowledge, onClick }: BedCardProps) {
   const styles = STATUS_STYLES[bed.status] ?? STATUS_STYLES.OFFLINE
+  const isClickable = CLICKABLE_STATUSES.has(bed.status) && !!onClick
 
   return (
-    <div className={clsx('rounded-xl border-2 p-4 shadow-sm transition-all', styles)}>
+    <div
+      className={clsx(
+        'rounded-xl border-2 p-4 shadow-sm transition-all',
+        styles,
+        isClickable && 'cursor-pointer hover:shadow-md hover:scale-[1.01]',
+      )}
+      onClick={() => { if (isClickable) onClick!(bed.bed_number) }}
+    >
       {/* Cabeçalho */}
       <div className="flex items-center justify-between mb-2">
         <span className="text-lg font-bold text-gray-800">Leito {bed.bed_number}</span>
@@ -47,11 +58,25 @@ export function BedCard({ bed, onAcknowledge }: BedCardProps) {
         </p>
       )}
 
-      {/* Ambiente */}
+      {/* Ambiente — temperatura e umidade */}
       {bed.temperature_celsius != null && (
         <p className="text-xs text-gray-500">
           🌡 {bed.temperature_celsius.toFixed(1)}°C &nbsp;
           💧 {bed.humidity_percent?.toFixed(0)}%
+        </p>
+      )}
+
+      {/* Luminosidade */}
+      {bed.luminosity_lux != null && (
+        <p className="text-xs text-gray-500">
+          💡 {bed.luminosity_lux.toFixed(0)} lux
+        </p>
+      )}
+
+      {/* Postura */}
+      {bed.posture_label && (
+        <p className="text-xs text-gray-500">
+          🔄 {bed.posture_label}
         </p>
       )}
 
@@ -62,10 +87,10 @@ export function BedCard({ bed, onAcknowledge }: BedCardProps) {
         </p>
       )}
 
-      {/* Botão de atendimento */}
+      {/* Botão de atendimento — stopPropagation para não abrir modal */}
       {bed.status === 'EMERGENCY' && onAcknowledge && (
         <button
-          onClick={() => onAcknowledge(bed.bed_number)}
+          onClick={(e) => { e.stopPropagation(); onAcknowledge(bed.bed_number) }}
           className="mt-3 w-full rounded-lg bg-red-600 py-1.5 text-sm font-semibold text-white hover:bg-red-700 transition"
         >
           Confirmar Atendimento

@@ -65,7 +65,14 @@
  * ÁUDIO
  * ========================================================= */
 #define APP_AUDIO_MAX_DURATION_S        10      /**< Duração máxima de gravação */
+#define APP_AUDIO_RECORD_MS             (APP_AUDIO_MAX_DURATION_S * 1000)
 #define APP_AUDIO_BUFFER_SIZE_BYTES     (HW_MIC_SAMPLE_RATE_HZ * APP_AUDIO_MAX_DURATION_S * 2)
+#define AUDIO_BUFFER_BYTES              APP_AUDIO_BUFFER_SIZE_BYTES
+
+/* =========================================================
+ * CÂMERA
+ * ========================================================= */
+#define APP_CAMERA_FRAME_INTERVAL_MS    2000    /**< Captura frame a cada 2 s no modo contínuo */
 
 /* =========================================================
  * ARMAZENAMENTO LOCAL
@@ -82,6 +89,7 @@
  * ========================================================= */
 #define APP_OFFLINE_BLINK_INTERVAL_MS   1000
 #define APP_EMERGENCY_BLINK_INTERVAL_MS 300
+#define APP_DISPLAY_REFRESH_MS          APP_DISPLAY_REFRESH_INTERVAL_MS
 
 /* =========================================================
  * WATCHDOG

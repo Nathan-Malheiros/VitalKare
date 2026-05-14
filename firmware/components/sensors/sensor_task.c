@@ -16,6 +16,30 @@
 
 static const char *TAG = "SENSORS";
 
+/* =========================================================
+ * DERIVAÇÃO DE POSTURA (acelerômetro MPU6050)
+ * =========================================================
+ * Lógica:
+ *  - Movimento detectado (variação do módulo) → "Movimento Detectado"
+ *  - |Az| > 0.8 g (eixo Z dominante)          → "Deitado"
+ *  - |Ax| > 0.8 g ou |Ay| > 0.8 g             → "Sentado"
+ *  - Caso contrário                            → "Em Repouso"
+ */
+#include <math.h>
+static const char *derive_posture_label(const mpu6050_reading_t *mpu)
+{
+    if (!mpu->valid)          return "Desconhecido";
+    if (mpu->motion_detected) return "Movimento Detectado";
+
+    float az = fabsf(mpu->accel_z_g);
+    float ax = fabsf(mpu->accel_x_g);
+    float ay = fabsf(mpu->accel_y_g);
+
+    if (az > 0.8f)              return "Deitado";
+    if (ay > 0.8f || ax > 0.8f) return "Sentado";
+    return "Em Repouso";
+}
+
 esp_err_t sensor_task_init(void)
 {
     /* Sensores já inicializados em init_hardware() — nada a fazer aqui */
@@ -46,11 +70,14 @@ void task_sensor_poll(void *arg)
             motion = mpu.motion_detected;
         }
 
+        /* Derivação de postura a partir dos dados do acelerômetro */
+        const char *posture = derive_posture_label(&mpu);
+
         /* Nível de ruído — placeholder (ADC de microfone analógico) */
         float noise_db = 0.0f;
 
-        ESP_LOGI(TAG, "T=%.1f°C H=%.1f%% Lux=%.0f Motion=%d",
-                 hdc.temperature_celsius, hdc.humidity_percent, lux, motion);
+        ESP_LOGI(TAG, "T=%.1f°C H=%.1f%% Lux=%.0f Motion=%d Postura=%s",
+                 hdc.temperature_celsius, hdc.humidity_percent, lux, motion, posture);
 
         /* Publica via MQTT (se conectado) */
         vitalkare_mqtt_publish_environment(
@@ -58,7 +85,8 @@ void task_sensor_poll(void *arg)
             hdc.humidity_percent,
             lux,
             noise_db,
-            motion);
+            motion,
+            posture);
 
         /* Posta evento para outros subsistemas */
         system_event_t evt = {

@@ -228,7 +228,8 @@ esp_err_t vitalkare_mqtt_publish_emergency(const char *trigger)
 
 esp_err_t vitalkare_mqtt_publish_environment(float temp_c, float humidity_pct,
                                               float lux, float noise_db,
-                                              bool motion)
+                                              bool motion,
+                                              const char *posture_label)
 {
     const device_info_t *dev = core_get_device_info();
     char topic[MQTT_MAX_TOPIC_LEN];
@@ -241,10 +242,11 @@ esp_err_t vitalkare_mqtt_publish_environment(float temp_c, float humidity_pct,
              "{\"device_id\":\"%s\",\"ward\":\"%s\","
              "\"temperature_celsius\":%.1f,\"humidity_percent\":%.1f,"
              "\"luminosity_lux\":%.0f,\"noise_level_db\":%.1f,"
-             "\"motion_detected\":%s}",
+             "\"motion_detected\":%s,\"posture_label\":\"%s\"}",
              dev->device_id, dev->ward_id,
              temp_c, humidity_pct, lux, noise_db,
-             motion ? "true" : "false");
+             motion ? "true" : "false",
+             posture_label ? posture_label : "Desconhecido");
 
     int ret = vitalkare_mqtt_publish(topic, payload, strlen(payload),
                                      MQTT_QOS_SENSOR, true);

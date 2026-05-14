@@ -54,11 +54,14 @@ esp_err_t vitalkare_mqtt_publish_status(void);
 esp_err_t vitalkare_mqtt_publish_emergency(const char *trigger);
 
 /**
- * @brief Publica leituras ambientais.
+ * @brief Publica leituras ambientais com rótulo de postura derivado do MPU6050.
+ * @param posture_label String UTF-8 descrevendo a postura detectada
+ *                      (ex: "Deitado", "Sentado", "Em Repouso", "Movimento Detectado").
  */
 esp_err_t vitalkare_mqtt_publish_environment(float temp_c, float humidity_pct,
                                               float lux, float noise_db,
-                                              bool motion);
+                                              bool motion,
+                                              const char *posture_label);
 
 /** @brief Task FreeRTOS do MQTT manager — não chamar diretamente. */
 void task_mqtt_manager(void *arg);

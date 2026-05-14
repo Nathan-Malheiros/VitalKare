@@ -72,6 +72,6 @@
 #define MQTT_MAX_PAYLOAD_LEN        (96 * 1024)  /**< 96 KB — áudio ADPCM 10 s */
 #define MQTT_STATUS_PAYLOAD_LEN     512
 #define MQTT_EVENT_PAYLOAD_LEN      512
-#define MQTT_ENV_PAYLOAD_LEN        256
+#define MQTT_ENV_PAYLOAD_LEN        384   /* aumentado para incluir posture_label */
 
 #endif /* VITALKARE_MQTT_CONFIG_H */

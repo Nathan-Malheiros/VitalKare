@@ -107,12 +107,6 @@ class MQTTHandler:
 
     async def _dispatch(self, topic: str, raw_payload: bytes) -> None:
         """Roteia mensagem para o processor correto com base no subtópico."""
-        try:
-            payload = json.loads(raw_payload.decode("utf-8"))
-        except (json.JSONDecodeError, UnicodeDecodeError):
-            logger.warning("Payload inválido em %s", topic)
-            return
-
         parts = topic.split("/")
         # Formato: hospital/{ward}/{device_id}/{subtopic}
         if len(parts) < 4:
@@ -120,11 +114,21 @@ class MQTTHandler:
 
         subtopic = parts[3]
 
+        # Áudio: payload binário PCM — NÃO é JSON, trata antes do decode
+        if subtopic == "audio":
+            await self._processor.process_audio(topic=topic, raw_bytes=raw_payload)
+            return
+
+        try:
+            payload = json.loads(raw_payload.decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            logger.warning("Payload inválido em %s (tamanho=%d bytes)", topic, len(raw_payload))
+            return
+
         handlers = {
             "status":      self._processor.process_status,
             "emergency":   self._processor.process_emergency,
             "request":     self._processor.process_request,
-            "audio":       self._processor.process_audio,
             "environment": self._processor.process_environment,
             "image":       self._processor.process_image,
             "log":         self._processor.process_log,

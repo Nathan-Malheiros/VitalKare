@@ -120,42 +120,108 @@ class EventProcessor:
         })
 
     # =========================================================
-    # ÁUDIO
+    # ÁUDIO (payload binário PCM 16-bit 16 kHz mono)
     # =========================================================
-    async def process_audio(self, topic: str, payload: dict[str, Any]) -> None:
-        """Recebe payload de áudio e encaminha para o serviço de transcrição."""
-        device_id = payload.get("device_id")
-        logger.info("Áudio recebido de %s (%ds)", device_id,
-                    payload.get("duration_seconds", 0))
+    async def process_audio(self, topic: str, raw_bytes: bytes) -> None:
+        """Persiste gravação de áudio e notifica dashboard."""
+        from app.models.audio_record import AudioRecord
 
-        # TODO (Fase 4): Encaminhar para audio_service.py
-        # await audio_service.enqueue(payload)
+        parts = topic.split("/")
+        device_id = parts[2] if len(parts) >= 3 else None
+        if not device_id:
+            return
+
+        size_bytes = len(raw_bytes)
+        # 16 kHz * 2 bytes/amostra = 32 000 bytes/s
+        duration_s = max(1, size_bytes // 32_000)
+
+        logger.info("Áudio recebido de %s (%d bytes, ~%ds)",
+                    device_id, size_bytes, duration_s)
+
+        async with AsyncSessionLocal() as session:
+            bed = await self._get_bed_by_device_id(session, device_id)
+            if not bed:
+                logger.warning("Áudio de dispositivo desconhecido: %s", device_id)
+                return
+
+            record = AudioRecord(
+                bed_id=bed.id,
+                duration_seconds=float(duration_s),
+                file_size_bytes=size_bytes,
+                sample_rate=16_000,
+                # TODO (Fase 4): file_path após upload para MinIO
+                # TODO (Fase 4): chamar Whisper e preencher Transcription
+            )
+            session.add(record)
+            await session.commit()
+            await session.refresh(record)
+
+        await self._notification.broadcast({
+            "type":             "audio_record",
+            "bed_id":           bed.bed_number,
+            "record_id":        str(record.id),
+            "duration_seconds": duration_s,
+            "transcript":       None,   # será preenchido pelo Whisper (Fase 4)
+            "confidence":       None,
+            "timestamp":        record.created_at.isoformat(),
+        })
 
     # =========================================================
     # AMBIENTE
     # =========================================================
     async def process_environment(self, topic: str, payload: dict[str, Any]) -> None:
-        """Persiste leitura ambiental e notifica dashboard."""
+        """Persiste leitura ambiental, atualiza snapshot do leito e notifica dashboard."""
+        from app.models.environment_reading import EnvironmentReading
+
         device_id = payload.get("device_id")
-        logger.debug("Ambiente recebido de %s: T=%.1f H=%.1f",
+        logger.debug("Ambiente recebido de %s: T=%.1f H=%.1f Lux=%.0f Postura=%s",
                      device_id,
                      payload.get("temperature_celsius", 0),
-                     payload.get("humidity_percent", 0))
+                     payload.get("humidity_percent", 0),
+                     payload.get("luminosity_lux", 0),
+                     payload.get("posture_label", "-"))
 
-        # TODO (Fase 2): Persistir em environment_readings
-        # Notifica dashboard com dados atualizados
         async with AsyncSessionLocal() as session:
             bed = await self._get_bed_by_device_id(session, device_id)
-            if bed:
-                await self._notification.broadcast({
-                    "type": "environment",
-                    "bed_id": bed.bed_number,
-                    "temperature_celsius": payload.get("temperature_celsius"),
-                    "humidity_percent": payload.get("humidity_percent"),
-                    "luminosity_lux": payload.get("luminosity_lux"),
-                    "noise_level_db": payload.get("noise_level_db"),
-                    "motion_detected": payload.get("motion_detected"),
-                })
+            if not bed:
+                return
+
+            # Persiste a leitura ambiental
+            reading = EnvironmentReading(
+                bed_id=bed.id,
+                temperature_celsius=payload.get("temperature_celsius"),
+                humidity_percent=payload.get("humidity_percent"),
+                luminosity_lux=payload.get("luminosity_lux"),
+                noise_level_db=payload.get("noise_level_db"),
+                motion_detected=payload.get("motion_detected"),
+                posture_label=payload.get("posture_label"),
+            )
+            session.add(reading)
+
+            # Atualiza snapshot desnormalizado no leito para leitura rápida
+            bed.metadata_json = {
+                **(bed.metadata_json or {}),
+                "last_temp":    payload.get("temperature_celsius"),
+                "last_hum":     payload.get("humidity_percent"),
+                "last_lux":     payload.get("luminosity_lux"),
+                "last_noise":   payload.get("noise_level_db"),
+                "last_motion":  payload.get("motion_detected"),
+                "last_posture": payload.get("posture_label"),
+            }
+
+            await session.commit()
+
+        # Notifica dashboard com todos os campos
+        await self._notification.broadcast({
+            "type":                "environment",
+            "bed_id":             bed.bed_number,
+            "temperature_celsius": payload.get("temperature_celsius"),
+            "humidity_percent":    payload.get("humidity_percent"),
+            "luminosity_lux":      payload.get("luminosity_lux"),
+            "noise_level_db":      payload.get("noise_level_db"),
+            "motion_detected":     payload.get("motion_detected"),
+            "posture_label":       payload.get("posture_label"),
+        })
 
     # =========================================================
     # IMAGEM

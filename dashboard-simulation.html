@@ -1,542 +1,1112 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VitalKare — Simulação do Dashboard</title>
-  <link rel="icon" type="image/png" href="Images/VitalKareIcon.png" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            vk: {
-              50:  '#e0fafa',
-              100: '#b2f0f0',
-              200: '#7ee5e5',
-              300: '#45d6d6',
-              400: '#00C9B8',
-              500: '#00BCD4',
-              600: '#0097A7',
-              700: '#00838F',
-              800: '#006978',
-              900: '#004D5C',
-            }
-          }
-        }
+  <!DOCTYPE html>
+  <html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VitalKare — Monitoramento em Tempo Real</title>
+    <link rel="icon" type="image/png" href="Images/VitalKareIcon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      :root {
+        /* Tons claros e modernos para o Light Mode */
+        --bg:      #f8fafc; 
+        --card:    #ffffff; 
+        --surface: #f1f5f9; 
+        --border:  #e2e8f0; 
       }
-    }
-  </script>
-  <style>
-    html { font-size: 16px; }
-    body { background-color: #f0fdfe; }
 
-    #navbar {
-      background: linear-gradient(135deg, #00C9B8 0%, #0097A7 60%, #00838F 100%);
-    }
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      html { scroll-behavior: smooth; }
+      
+      body {
+        background: var(--bg);
+        color: #1e293b; /* Texto geral escuro para leitura no fundo claro */
+        font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+        min-height: 100vh;
+      }
+      
+      ::-webkit-scrollbar { width: 4px; height: 4px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: #1e2d40; border-radius: 99px; }
 
-    @keyframes pulse-ring {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.5); }
-      50%       { box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
-    }
-    .emergency-pulse { animation: pulse-ring 1.2s ease-in-out infinite; }
+      /* ── Animations ── */
+      @keyframes pulse-glow {
+        0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,.45); }
+        55%      { box-shadow: 0 0 0 14px rgba(239,68,68,0); }
+      }
+      @keyframes dot-blink  { 0%,100%{opacity:1} 50%{opacity:.2} }
+      @keyframes card-in    { from{opacity:0;transform:translateY(10px) scale(.96)} to{opacity:1;transform:none} }
+      @keyframes toast-in   { from{opacity:0;transform:translateX(110%)}  to{opacity:1;transform:none} }
+      @keyframes toast-out  { from{opacity:1;transform:none} to{opacity:0;transform:translateX(110%)} }
+      @keyframes log-in     { from{opacity:0;transform:translateX(-8px)} to{opacity:1;transform:none} }
+      @keyframes banner-drop{ from{transform:translateY(-100%);opacity:0} to{transform:none;opacity:1} }
+      @keyframes rec-blink  { 0%,100%{opacity:1} 50%{opacity:0} }
 
-    @keyframes slide-down {
-      from { transform: translateY(-100%); opacity: 0; }
-      to   { transform: translateY(0);    opacity: 1; }
-    }
-    .banner-enter { animation: slide-down 0.35s ease-out; }
+      .emg-glow   { animation: pulse-glow 1.6s ease-in-out infinite; }
+      .dot-blink  { animation: dot-blink  2s   ease-in-out infinite; }
+      .card-in    { animation: card-in    .22s ease-out    forwards; }
+      .log-in     { animation: log-in     .18s ease-out    forwards; }
+      .banner-drop{ animation: banner-drop .3s ease-out    forwards; }
+      .rec-dot    { animation: rec-blink  1s  step-end     infinite; }
 
-    @keyframes fade-in {
-      from { opacity: 0; transform: scale(0.95); }
-      to   { opacity: 1; transform: scale(1); }
-    }
-    .fade-in { animation: fade-in 0.25s ease-out; }
-    .log-entry { animation: fade-in 0.2s ease-out; }
+      .bed-card { transition: transform .15s ease, box-shadow .15s ease; cursor: pointer; }
+      .bed-card:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,.45); }
 
-    .nav-badge {
-      background: rgba(255,255,255,0.15);
-      border: 1px solid rgba(255,255,255,0.3);
-      border-radius: 6px;
-      padding: 4px 12px;
-      color: #fff;
-      font-size: 0.85rem;
-      font-family: monospace;
-    }
-  </style>
-</head>
-<body class="min-h-screen font-sans">
+      .tab-btn { transition: background .15s, color .15s; }
+    </style>
+  </head>
+  <body>
 
-<!-- ============================================================
-     EMERGENCY BANNER (topo fixo)
-     ============================================================ -->
-<div id="emergency-banners" class="fixed top-0 left-0 right-0 z-50 space-y-1"></div>
-
-<!-- ============================================================
-     NAVBAR
-     ============================================================ -->
-<nav id="navbar" class="px-6 py-3 flex items-center justify-between shadow-md mt-0">
-  <div class="flex items-center gap-3">
-    <img src="Images/VitalKareLogo.png" alt="VitalKare" class="h-14 drop-shadow" />
-    <span class="text-xs font-bold px-2 py-0.5 rounded-full"
-          style="background:rgba(255,255,255,0.2);color:#fff;letter-spacing:.08em">SIMULAÇÃO</span>
+  <!-- ── Toast container ──────────────────────────────────── -->
+  <div id="toasts"
+    class="fixed bottom-5 right-5 z-[200] flex flex-col items-end gap-2 max-w-xs w-full pointer-events-none">
   </div>
-  <div class="flex items-center gap-3">
-    <span id="clock" class="nav-badge"></span>
-    <span class="flex items-center gap-1.5 nav-badge">
-      <span id="ws-dot" class="inline-block w-2 h-2 rounded-full" style="background:#86efac"></span>
-      <span id="ws-label">WebSocket: Conectado</span>
-    </span>
-    <button onclick="toggleSimulation()" id="btn-sim"
-      class="bg-white text-vk-700 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-vk-50 transition shadow">
-      ⏸ Pausar
-    </button>
-    <button onclick="resetAll()"
-      class="bg-white/20 border border-white/40 text-white px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-white/30 transition">
-      🔄 Resetar
-    </button>
-  </div>
-</nav>
 
-<!-- ============================================================
-     STATS
-     ============================================================ -->
-<div class="max-w-7xl mx-auto px-6 mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
-  <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-vk-500">
-    <p class="text-xs text-gray-500 uppercase font-semibold">Online</p>
-    <p id="stat-online" class="text-3xl font-bold text-vk-600 mt-1">0</p>
-  </div>
-  <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-vk-400">
-    <p class="text-xs text-gray-500 uppercase font-semibold">Ocupados</p>
-    <p id="stat-occupied" class="text-3xl font-bold text-vk-500 mt-1">0</p>
-  </div>
-  <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-red-500">
-    <p class="text-xs text-gray-500 uppercase font-semibold">Emergências</p>
-    <p id="stat-emergency" class="text-3xl font-bold text-red-600 mt-1">0</p>
-  </div>
-  <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-gray-400">
-    <p class="text-xs text-gray-500 uppercase font-semibold">Offline</p>
-    <p id="stat-offline" class="text-3xl font-bold text-gray-500 mt-1">0</p>
-  </div>
-</div>
+  <!-- ── Emergency banners ─────────────────────────────────── -->
+  <div id="banners" class="fixed top-0 left-0 right-0 z-[100]"></div>
 
-<!-- ============================================================
-     BED GRID
-     ============================================================ -->
-<main class="max-w-7xl mx-auto px-6 mt-6 pb-8">
-  <h2 class="text-lg font-semibold text-vk-700 mb-4">Leitos — Ala A</h2>
-  <div id="bed-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"></div>
+  <!-- ── Top bar ───────────────────────────────────────────── -->
+  <header id="topbar"
+    class="sticky z-50 top-0 px-5 py-3 flex items-center justify-between gap-4"
+    style="background: rgba(8, 14, 26, 0.95); backdrop-filter: blur(14px); border-bottom: 1px solid #1e2d40">
 
-  <!-- EVENT LOG -->
-  <div class="mt-8">
-    <div class="flex items-center justify-between mb-3">
-      <h2 class="text-lg font-semibold text-vk-700">Log de Eventos (WebSocket)</h2>
-      <button onclick="clearLog()" class="text-xs text-gray-400 hover:text-vk-600 transition">Limpar</button>
-    </div>
-    <div id="event-log"
-         class="bg-gray-900 text-green-300 font-mono text-xs rounded-xl p-4 h-52 overflow-y-auto space-y-1">
-      <p class="text-gray-500">— aguardando eventos —</p>
+  <div class="flex items-center gap-3 min-w-0">
+    <img src="Images/VitalKareLogo.png" alt="VitalKare" class="h-[80px] flex-shrink-0 drop-shadow-lg" />
+    <div class="flex flex-col leading-none">
+      <span class="text-[18px] font-bold tracking-[.18em] uppercase text-[#00b2bd]">Simulação</span>
+      <span class="text-[11px] text-slate-400 mt-0.5">Dashboard em tempo real</span>
     </div>
   </div>
-</main>
 
-<!-- ============================================================
-     JAVASCRIPT — SIMULAÇÃO
-     ============================================================ -->
-<script>
-// ---------------------------------------------------------------
-// ESTADO
-// ---------------------------------------------------------------
-const WARDS = ['Ala A'];
-const PATIENTS = [
-  'Carlos Souza','Maria Lima','João Ferreira','Ana Costa','Pedro Alves',
-  'Luiza Nunes','Bruno Dias','Fernanda Melo','Ricardo Pinto','Camila Rocha',
-  'Marcos Vieira','Patrícia Gomes','Rafael Teixeira','Juliana Barbosa',null,null,null,null,null,null
-];
+    <div class="flex items-center gap-2 text-xs flex-shrink-0">
+      <span id="clock" class="font-mono text-[11px] text-slate-400 hidden sm:block tabular-nums"></span>
 
-let simRunning = true;
-let simTimers = [];
-
-/** @type {Record<string,{id:string,number:string,ward:string,status:string,patient:string|null,temp:number|null,hum:number|null,heartbeat:string|null,firmware:string}>} */
-let beds = {};
-/** @type {{id:string,bed_id:string,ward:string,timestamp:string,acknowledged:boolean}[]} */
-let alerts = [];
-
-// ---------------------------------------------------------------
-// INIT
-// ---------------------------------------------------------------
-function initBeds() {
-  beds = {};
-  alerts = [];
-  for (let i = 1; i <= 20; i++) {
-    const num = String(i).padStart(2,'0');
-    const statuses = ['ONLINE','ONLINE','OCCUPIED','OCCUPIED','FREE','OFFLINE'];
-    const status = statuses[Math.floor(Math.random() * statuses.length)];
-    const patient = (status === 'OCCUPIED') ? PATIENTS[Math.floor(Math.random()*12)] : null;
-    beds[num] = {
-      id: `bed-${num}`,
-      number: num,
-      ward: 'Ala A',
-      status,
-      patient,
-      temp: (status !== 'OFFLINE' && status !== 'FREE') ? +(22 + Math.random()*6).toFixed(1) : null,
-      hum:  (status !== 'OFFLINE' && status !== 'FREE') ? +(50 + Math.random()*30).toFixed(0) : null,
-      heartbeat: (status !== 'OFFLINE') ? new Date().toISOString() : null,
-      firmware: 'v1.4.2'
-    };
-  }
-}
-
-// ---------------------------------------------------------------
-// RENDER — BED CARD
-// ---------------------------------------------------------------
-const STATUS_STYLES = {
-  ONLINE:           'border-[#00BCD4] bg-[#e0fafa]',
-  OCCUPIED:         'border-[#00C9B8] bg-[#f0fdfb]',
-  EMERGENCY:        'border-red-600 bg-red-100 emergency-pulse ring-2 ring-red-500',
-  CRITICAL_OFFLINE: 'border-red-400 bg-red-50',
-  OFFLINE:          'border-gray-300 bg-gray-50 opacity-60',
-  FREE:             'border-dashed border-gray-300 bg-white',
-};
-const STATUS_LABEL = {
-  ONLINE:           'Online',
-  OCCUPIED:         'Ocupado',
-  EMERGENCY:        '⚠ Emergência',
-  CRITICAL_OFFLINE: 'Crítico / Offline',
-  OFFLINE:          'Offline',
-  FREE:             'Livre',
-};
-const STATUS_BADGE = {
-  ONLINE:           'bg-[#b2f0f0] text-[#00838F]',
-  OCCUPIED:         'bg-[#ccf5f5] text-[#0097A7]',
-  EMERGENCY:        'bg-red-600 text-white',
-  CRITICAL_OFFLINE: 'bg-red-100 text-red-700',
-  OFFLINE:          'bg-gray-100 text-gray-500',
-  FREE:             'bg-gray-100 text-gray-400',
-};
-
-function renderBed(bed) {
-  const styles = STATUS_STYLES[bed.status] || STATUS_STYLES.OFFLINE;
-  const badge  = STATUS_BADGE[bed.status]  || STATUS_BADGE.OFFLINE;
-  const label  = STATUS_LABEL[bed.status]  || bed.status;
-
-  const patientHtml = bed.patient
-    ? `<p class="text-sm text-gray-700 mb-1 truncate"><span class="font-medium">Paciente:</span> ${bed.patient}</p>`
-    : '';
-
-  const envHtml = (bed.temp != null)
-    ? `<p class="text-xs text-gray-500">🌡 ${bed.temp.toFixed(1)}°C &nbsp; 💧 ${bed.hum}%</p>`
-    : '';
-
-  const heartbeatHtml = bed.heartbeat
-    ? `<p class="text-xs text-gray-400 mt-1">Último contato: ${new Date(bed.heartbeat).toLocaleTimeString('pt-BR')}</p>`
-    : '';
-
-  const ackBtn = (bed.status === 'EMERGENCY')
-    ? `<button onclick="acknowledgeFromCard('${bed.number}')"
-         class="mt-3 w-full rounded-lg bg-red-600 py-1.5 text-sm font-semibold text-white hover:bg-red-700 transition">
-         Confirmar Atendimento
-       </button>`
-    : '';
-
-  return `
-    <div id="card-${bed.number}" class="rounded-xl border-2 p-4 shadow-sm transition-all fade-in ${styles}">
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-lg font-bold text-gray-800">Leito ${bed.number}</span>
-        <span class="text-xs font-semibold px-2 py-0.5 rounded-full ${badge}">${label}</span>
+      <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg"
+        style="background: #0f172a; border: 1px solid #1e2d40">
+        <span id="ws-dot" class="w-2 h-2 rounded-full bg-emerald-400 dot-blink flex-shrink-0"></span>
+        <span id="ws-label" class="text-slate-300 hidden sm:inline text-[11px]">WebSocket</span>
       </div>
-      ${patientHtml}
-      ${envHtml}
-      ${heartbeatHtml}
-      ${ackBtn}
-    </div>`;
-}
 
-function renderAllBeds() {
-  const grid = document.getElementById('bed-grid');
-  grid.innerHTML = Object.values(beds)
-    .sort((a,b) => a.number.localeCompare(b.number))
-    .map(renderBed).join('');
-  updateStats();
-}
+      <button id="btn-pause" onclick="toggleSimulation()"
+        class="px-3 py-1.5 rounded-lg text-white text-[11px] font-semibold transition-opacity hover:opacity-90"
+        style="background:#0891b2">⏸ Pausar</button>
 
-function updateCard(bedNum) {
-  const card = document.getElementById(`card-${bedNum}`);
-  if (!card) return;
-  const bed = beds[bedNum];
-  if (!bed) return;
-  const tmp = document.createElement('div');
-  tmp.innerHTML = renderBed(bed);
-  const newCard = tmp.firstElementChild;
-  card.replaceWith(newCard);
-  updateStats();
-}
+      <button onclick="resetAll()"
+        class="px-3 py-1.5 rounded-lg text-slate-300 text-[11px] font-semibold transition hover:bg-slate-800"
+        style="border:1px solid #1e2d40; background:#0f172a">↺ Reset</button>
+    </div>
+  </header>
 
-// ---------------------------------------------------------------
-// STATS
-// ---------------------------------------------------------------
-function updateStats() {
-  const counts = {ONLINE:0, OCCUPIED:0, EMERGENCY:0, OFFLINE:0, FREE:0, CRITICAL_OFFLINE:0};
-  Object.values(beds).forEach(b => { counts[b.status] = (counts[b.status]||0)+1; });
-  document.getElementById('stat-online').textContent    = counts.ONLINE + counts.OCCUPIED;
-  document.getElementById('stat-occupied').textContent  = counts.OCCUPIED;
-  document.getElementById('stat-emergency').textContent = counts.EMERGENCY;
-  document.getElementById('stat-offline').textContent   = counts.OFFLINE + counts.CRITICAL_OFFLINE;
-}
+  <!-- ── Stats ─────────────────────────────────────────────── -->
+  <section class="max-w-7xl mx-auto px-5 mt-5 grid grid-cols-2 sm:grid-cols-5 gap-3">
+    <div class="rounded-xl p-4" style="background:var(--card);border:1px solid var(--border)">
+      <p class="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Online</p>
+      <p id="stat-online"    class="text-2xl font-bold text-cyan-600   mt-1 tabular-nums">0</p>
+      <p class="text-[10px] text-slate-500 mt-0.5">dispositivos ativos</p>
+    </div>
+    <div class="rounded-xl p-4" style="background:var(--card);border:1px solid var(--border)">
+      <p class="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Ocupados</p>
+      <p id="stat-occupied"  class="text-2xl font-bold text-emerald-600 mt-1 tabular-nums">0</p>
+      <p class="text-[10px] text-slate-500 mt-0.5">com paciente</p>
+    </div>
+    <div class="rounded-xl p-4" style="background:var(--card);border:1px solid var(--border)">
+      <p class="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Emergências</p>
+      <p id="stat-emergency" class="text-2xl font-bold text-red-500    mt-1 tabular-nums">0</p>
+      <p class="text-[10px] text-slate-500 mt-0.5">aguardando ACK</p>
+    </div>
+    <div class="rounded-xl p-4" style="background:var(--card);border:1px solid var(--border)">
+      <p class="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Offline</p>
+      <p id="stat-offline"   class="text-2xl font-bold text-slate-600  mt-1 tabular-nums">0</p>
+      <p class="text-[10px] text-slate-500 mt-0.5">sem comunicação</p>
+    </div>
+    <div class="rounded-xl p-4" style="background:var(--card);border:1px solid var(--border)">
+      <p class="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Livres</p>
+      <p id="stat-free"      class="text-2xl font-bold text-slate-400  mt-1 tabular-nums">0</p>
+      <p class="text-[10px] text-slate-500 mt-0.5">disponíveis</p>
+    </div>
+  </section>
 
-// ---------------------------------------------------------------
-// EMERGENCY BANNER
-// ---------------------------------------------------------------
-function renderBanners() {
-  const container = document.getElementById('emergency-banners');
-  const active = alerts.filter(a => !a.acknowledged);
-  container.innerHTML = active.map(a => `
-    <div class="flex items-center justify-between bg-red-600 px-6 py-3 text-white shadow-lg banner-enter">
-      <div class="flex items-center gap-3">
-        <span class="text-2xl">🚨</span>
-        <div>
-          <p class="font-bold text-lg">EMERGÊNCIA — Leito ${a.bed_id}</p>
-          <p class="text-sm opacity-90">Ala: ${a.ward} · ${new Date(a.timestamp).toLocaleTimeString('pt-BR')}</p>
+  <!-- ── Main grid ─────────────────────────────────────────── -->
+  <main class="max-w-7xl mx-auto px-5 mt-24 pb-10 grid grid-cols-1 lg:grid-cols-[1fr_288px] gap-5 items-start">
+
+    <!-- Bed grid -->
+    <div>
+      <div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
+        <h2 class="text-[11px] font-semibold text-slate-700 uppercase tracking-wider">
+        Ala A — 20 Leitos
+       </h2>
+
+        <!-- Filter tabs -->
+        <div id="filter-tabs"
+          class="flex items-center gap-0.5 rounded-lg p-0.5"
+          style="background:var(--surface);border:1px solid var(--border)">
+          <button onclick="setFilter('ALL')"       id="tab-ALL"
+            class="tab-btn px-2.5 py-1 rounded text-[11px] font-semibold text-white"
+            style="background:#0891b2">Todos</button>
+          <button onclick="setFilter('ONLINE')"    id="tab-ONLINE"
+            class="tab-btn px-2.5 py-1 rounded text-[11px] font-semibold text-slate-400">Online</button>
+          <button onclick="setFilter('OCCUPIED')"  id="tab-OCCUPIED"
+            class="tab-btn px-2.5 py-1 rounded text-[11px] font-semibold text-slate-400">Ocupados</button>
+          <button onclick="setFilter('EMERGENCY')" id="tab-EMERGENCY"
+            class="tab-btn px-2.5 py-1 rounded text-[11px] font-semibold text-slate-400">Emergência</button>
+          <button onclick="setFilter('OFFLINE')"   id="tab-OFFLINE"
+            class="tab-btn px-2.5 py-1 rounded text-[11px] font-semibold text-slate-400">Offline</button>
         </div>
       </div>
-      <button onclick="acknowledgeAlert('${a.id}')"
-        class="rounded-lg border-2 border-white px-4 py-1.5 font-semibold hover:bg-red-700 transition text-sm">
-        Confirmar Atendimento
-      </button>
-    </div>`).join('');
 
-  // empurra navbar
-  document.getElementById('navbar').style.marginTop = (active.length * 64) + 'px';
-}
+      <div id="bed-grid"
+        class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
+      </div>
+      <p id="empty-label"
+        class="hidden text-center text-slate-600 py-16 text-sm">
+        Nenhum leito neste filtro.
+      </p>
+    </div>
 
-// ---------------------------------------------------------------
-// ACKNOWLEDGE
-// ---------------------------------------------------------------
-function acknowledgeAlert(alertId) {
-  const alert = alerts.find(a => a.id === alertId);
-  if (!alert) return;
-  alert.acknowledged = true;
-  // volta status do leito
-  const bed = beds[alert.bed_id];
-  if (bed) {
-    bed.status = bed.patient ? 'OCCUPIED' : 'ONLINE';
-    updateCard(alert.bed_id);
+    <!-- Event log -->
+    <div class="rounded-xl overflow-hidden"
+      style="background:var(--card);border:1px solid var(--border)">
+      <div class="flex items-center justify-between px-4 py-3"
+        style="border-bottom:1px solid var(--border)">
+        <div class="flex items-center gap-2">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 dot-blink"></span>
+          <span class="text-[10px] font-bold uppercase tracking-wider text-slate-600">Eventos ao Vivo</span>
+        </div>
+        <button onclick="clearLog()"
+          class="text-[10px] text-slate-600 hover:text-slate-400 transition">limpar</button>
+      </div>
+      <div id="event-log"
+        class="overflow-y-auto flex flex-col gap-1 p-3"
+        style="max-height:calc(100vh - 220px);min-height:320px">
+        <p class="text-xs text-slate-600 text-center py-6">— aguardando eventos —</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- ── Patient Detail Modal ────────────────────────────────── -->
+  <div id="patient-modal"
+    class="hidden fixed inset-0 z-[300] flex items-center justify-center p-4"
+    style="background:rgba(15,23,42,.58);backdrop-filter:blur(6px)"
+    onclick="handleModalBackdropClick(event)">
+
+    <div id="modal-panel"
+      class="w-full max-w-lg rounded-2xl shadow-2xl flex flex-col"
+      style="background:#fff;border:1px solid #e2e8f0;max-height:88vh">
+
+      <!-- Header -->
+      <div class="px-6 pt-5 pb-4 flex items-start justify-between gap-3 flex-shrink-0"
+        style="border-bottom:1px solid #e2e8f0;position:sticky;top:0;background:#fff;z-index:1">
+        <div class="flex items-center gap-3 min-w-0">
+          <div id="modal-avatar"
+            class="w-11 h-11 rounded-full flex-shrink-0 flex items-center justify-center
+                   text-sm font-bold text-white"></div>
+          <div class="min-w-0">
+            <p id="modal-patient-name" class="font-bold text-slate-900 text-base leading-tight truncate"></p>
+            <p class="text-[11px] text-slate-400 mt-0.5 font-mono">
+              <span id="modal-device-id"></span>
+              <span class="mx-1.5 text-slate-300">·</span>
+              <span id="modal-bed-label"></span>
+            </p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0 mt-0.5">
+          <span id="modal-status-badge" class="text-[9px] font-bold px-2.5 py-1 rounded-full border"></span>
+          <button onclick="closePatientModal()"
+            class="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold
+                   text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+            style="border:1px solid #e2e8f0">✕</button>
+        </div>
+      </div>
+
+      <!-- Scrollable body -->
+      <div id="modal-body" class="overflow-y-auto px-6 py-5 space-y-5 flex-1"></div>
+    </div>
+  </div>
+
+  <!-- ── JavaScript ─────────────────────────────────────────── -->
+  <script>
+  'use strict';
+
+  // ════════════════════════════════════════════════════
+  // CONFIG
+  // ════════════════════════════════════════════════════
+  const PATIENTS = [
+    'Carlos Souza','Maria Lima','João Ferreira','Ana Costa','Pedro Alves',
+    'Luiza Nunes','Bruno Dias','Fernanda Melo','Ricardo Pinto','Camila Rocha',
+    'Marcos Vieira','Patrícia Gomes','Rafael Teixeira','Juliana Barbosa','André Santos',
+  ];
+
+  const STATUS_META = {
+  // Tons ajustados para contrastar perfeitamente sobre o fundo branco do card
+  ONLINE:           { label:'Online',          border:'#00b2bd', text:'#008fa3', badge:'bg-teal-50 text-teal-700 border-teal-200' },
+  OCCUPIED:         { label:'Ocupado',         border:'#10b981', text:'#059669', badge:'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  EMERGENCY:        { label:'Emergência',      border:'#ef4444', text:'#dc2626', badge:'bg-red-50 text-red-700 border-red-200' },
+  CRITICAL_OFFLINE: { label:'Crítico',         border:'#f97316', text:'#ea580c', badge:'bg-orange-50 text-orange-700 border-orange-200' },
+  OFFLINE:          { label:'Offline',         border:'#94a3b8', text:'#64748b', badge:'bg-slate-100 text-slate-600 border-slate-200' },
+  FREE:             { label:'Livre',           border:'#cbd5e1', text:'#94a3b8', badge:'bg-slate-50 text-slate-500 border-slate-200' },
+  RECORDING:        { label:'Gravando',        border:'#a855f7', text:'#8b5cf6', badge:'bg-purple-50 text-purple-700 border-purple-200' },
+};
+
+  const AVATAR_COLORS    = ['#0891b2','#0d9488','#7c3aed','#db2777','#d97706','#059669','#c026d3','#0369a1'];
+
+  const POSTURES       = ['Deitado', 'Em Repouso', 'Sentado', 'Movimento Detectado', 'Agitado'];
+  const POSTURES_LABEL = { 'Deitado':'🛏', 'Em Repouso':'😴', 'Sentado':'🪑', 'Movimento Detectado':'🔄', 'Agitado':'⚠️' };
+  const AUDIO_TEMPLATES = [
+    'Paciente solicitou ajuste no soro.',
+    "Paciente pediu copo d'água.",
+    'Relato de dor moderada (EVA 4/10).',
+    'Chamada para a enfermagem.',
+    'Paciente solicitou mudança de posição.',
+    'Relato de náusea leve.',
+    'Pedido de ajuste na temperatura do quarto.',
+    'Paciente comunicou melhora nos sintomas.',
+    'Paciente perguntou sobre a medicação.',
+    'Solicitação de visita familiar registrada.',
+  ];
+
+  // ════════════════════════════════════════════════════
+  // STATE
+  // ════════════════════════════════════════════════════
+  let beds         = {};
+  let alerts       = [];
+  let timers       = [];
+  let simRunning   = true;
+  let activeFilter = 'ALL';
+  let bedHistory   = {};
+
+  // ════════════════════════════════════════════════════
+  // UTILITIES
+  // ════════════════════════════════════════════════════
+  const rnd     = (a, b) => a + Math.random() * (b - a);
+  const pick    = arr  => arr[Math.floor(Math.random() * arr.length)];
+  const fmt1    = n    => (+n).toFixed(1);
+  const beds_by = ss   => Object.values(beds).filter(b => ss.includes(b.status));
+
+  function relTime(ts) {
+    if (!ts) return '';
+    const s = Math.round((Date.now() - ts) / 1000);
+    if (s <  5)    return 'agora';
+    if (s < 60)    return `há ${s}s`;
+    if (s < 3600)  return `há ${Math.floor(s / 60)}m`;
+    return `há ${Math.floor(s / 3600)}h`;
   }
-  renderBanners();
-  logEvent('acknowledge', `✅ Emergência no Leito ${alert.bed_id} atendida`, '#86efac');
-}
 
-function acknowledgeFromCard(bedNum) {
-  const alert = alerts.find(a => a.bed_id === bedNum && !a.acknowledged);
-  if (alert) acknowledgeAlert(alert.id);
-}
-
-// ---------------------------------------------------------------
-// WEBSOCKET SIMULATION EVENTS
-// ---------------------------------------------------------------
-function dispatchBedStatus(bedNum, status) {
-  const bed = beds[bedNum];
-  if (!bed) return;
-  const prev = bed.status;
-  bed.status = status;
-  if (status !== 'OFFLINE' && status !== 'FREE' && status !== 'CRITICAL_OFFLINE') {
-    bed.heartbeat = new Date().toISOString();
+  function avatarBg(name) {
+    return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
   }
-  updateCard(bedNum);
-  logEvent('bed_status',
-    `📡 bed_status · Leito ${bedNum}: ${prev} → <strong>${status}</strong>`,
-    status === 'EMERGENCY' ? '#fca5a5' : status === 'OFFLINE' ? '#d1d5db' : '#6ee7b7');
-}
-
-function dispatchEmergency(bedNum) {
-  const bed = beds[bedNum];
-  if (!bed || bed.status === 'EMERGENCY') return;
-  const alertId = `evt-${Date.now()}-${bedNum}`;
-  const ts = new Date().toISOString();
-  alerts.unshift({ id: alertId, bed_id: bedNum, ward: bed.ward, timestamp: ts, acknowledged: false });
-  if (alerts.length > 100) alerts.splice(100);
-  bed.status = 'EMERGENCY';
-  bed.heartbeat = ts;
-  updateCard(bedNum);
-  renderBanners();
-  logEvent('emergency', `🚨 emergency · Leito ${bedNum} | ${bed.ward} | ${new Date(ts).toLocaleTimeString('pt-BR')}`, '#fca5a5');
-}
-
-function dispatchEnvironment(bedNum, temp, hum) {
-  const bed = beds[bedNum];
-  if (!bed) return;
-  bed.temp = temp;
-  bed.hum  = hum;
-  bed.heartbeat = new Date().toISOString();
-  updateCard(bedNum);
-    logEvent('environment', `🌡 environment · Leito ${bedNum}: ${temp.toFixed(1)}°C, ${hum.toFixed(0)}%`, '#67e8f9');
-}
-
-// ---------------------------------------------------------------
-// AUTO SIMULATION
-// ---------------------------------------------------------------
-let simTick = 0;
-
-const SCENARIOS = [
-  // Cenário 1 — heartbeats normais
-  () => {
-    const onlineBeds = Object.values(beds).filter(b => b.status === 'ONLINE' || b.status === 'OCCUPIED');
-    if (!onlineBeds.length) return;
-    const bed = onlineBeds[Math.floor(Math.random() * onlineBeds.length)];
-    const temp = +(22 + Math.random()*6).toFixed(1);
-    const hum  = +(50 + Math.random()*30).toFixed(0);
-    dispatchEnvironment(bed.number, temp, hum);
-  },
-
-  // Cenário 2 — leito fica offline
-  () => {
-    const online = Object.values(beds).filter(b => b.status === 'ONLINE');
-    if (!online.length) return;
-    const bed = online[Math.floor(Math.random() * online.length)];
-    dispatchBedStatus(bed.number, 'OFFLINE');
-    // reconecta após 8 s
-    delayedSim(8000, () => dispatchBedStatus(bed.number, 'ONLINE'));
-  },
-
-  // Cenário 3 — EMERGÊNCIA
-  () => {
-    const active = Object.values(beds).filter(b => b.status === 'ONLINE' || b.status === 'OCCUPIED');
-    if (!active.length) return;
-    const bed = active[Math.floor(Math.random() * active.length)];
-    dispatchEmergency(bed.number);
-  },
-
-  // Cenário 4 — leito muda para OCCUPIED (paciente deu entrada)
-  () => {
-    const free = Object.values(beds).filter(b => b.status === 'FREE' || b.status === 'ONLINE');
-    if (!free.length) return;
-    const bed = free[Math.floor(Math.random() * free.length)];
-    bed.patient = PATIENTS[Math.floor(Math.random()*12)] || 'Paciente Anônimo';
-    dispatchBedStatus(bed.number, 'OCCUPIED');
-  },
-
-  // Cenário 5 — CRITICAL_OFFLINE (leito ocupado fica offline)
-  () => {
-    const occupied = Object.values(beds).filter(b => b.status === 'OCCUPIED');
-    if (!occupied.length) return;
-    const bed = occupied[Math.floor(Math.random() * occupied.length)];
-    dispatchBedStatus(bed.number, 'CRITICAL_OFFLINE');
-    delayedSim(12000, () => dispatchBedStatus(bed.number, 'OCCUPIED'));
-  },
-];
-
-function runScenario() {
-  if (!simRunning) return;
-  simTick++;
-  // Escolhe cenário com pesos: heartbeats frequentes, emergências raras
-  const weights = [50, 15, 10, 15, 10];
-  const total = weights.reduce((s,w) => s+w, 0);
-  let r = Math.random() * total;
-  let idx = 0;
-  for (let i = 0; i < weights.length; i++) {
-    r -= weights[i];
-    if (r <= 0) { idx = i; break; }
+  function initials(name) {
+    return name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
   }
-  SCENARIOS[idx]();
+
+  // ════════════════════════════════════════════════════
+  // INIT
+  // ════════════════════════════════════════════════════
+  function initBeds() {
+    beds = {};
+    alerts = [];
+    bedHistory = {};
+    const dist = ['ONLINE','ONLINE','OCCUPIED','OCCUPIED','OCCUPIED','FREE','FREE','OFFLINE'];
+    for (let i = 1; i <= 20; i++) {
+      const num    = String(i).padStart(2, '0');
+      const status = pick(dist);
+      const hasEnv = status !== 'OFFLINE' && status !== 'FREE';
+      const t      = hasEnv ? +rnd(22, 28).toFixed(1) : null;
+      beds[num] = {
+        num, status,
+        ward:        'Ala A',
+        patient:     status === 'OCCUPIED' ? pick(PATIENTS) : null,
+        temp:        t,
+        hum:         hasEnv ? +rnd(45, 80).toFixed(0) : null,
+        tempHistory: hasEnv ? Array.from({ length: 5 }, () => +rnd(22, 28).toFixed(1)) : [],
+        heartbeat:        status !== 'OFFLINE' ? Date.now() : null,
+        signal:           Math.floor(rnd(2, 5)),
+        lux:              hasEnv ? Math.floor(rnd(80, 700)) : null,
+        posture:          hasEnv ? pick(POSTURES) : null,
+        audioTranscripts: [],
+      };
+    }
+  }
+
+  // ════════════════════════════════════════════════════
+  // SPARKLINE
+  // ════════════════════════════════════════════════════
+  function sparkline(data, color, uid) {
+    if (!data || data.length < 2) return '';
+    const W = 74, H = 24, P = 2;
+    const lo = Math.min(...data) - 0.4;
+    const hi = Math.max(...data) + 0.4;
+    const rng = hi - lo || 1;
+    const pts = data.map((v, i) => [
+      +(P + (i / (data.length - 1)) * (W - P * 2)).toFixed(1),
+      +((H - P) - ((v - lo) / rng) * (H - P * 2)).toFixed(1),
+    ]);
+    const polyStr = pts.map(p => p.join(',')).join(' ');
+    const [lx, ly] = pts[pts.length - 1];
+    const gid = `g${uid}`;
+    const areaStr = `${pts[0][0]},${H} ${polyStr} ${lx},${H}`;
+    return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="overflow:visible">
+      <defs>
+        <linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="${color}" stop-opacity=".28"/>
+          <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <polygon points="${areaStr}" fill="url(#${gid})"/>
+      <polyline points="${polyStr}" fill="none" stroke="${color}" stroke-width="1.5"
+        stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="${lx}" cy="${ly}" r="2.5" fill="${color}"/>
+    </svg>`;
+  }
+
+  // ════════════════════════════════════════════════════
+  // SIGNAL BARS
+  // ════════════════════════════════════════════════════
+  function signalBars(level) {
+    const bars = [1, 2, 3, 4].map(b => {
+      const h = 4 + b * 3;
+      const on = b <= level;
+      return `<rect x="${(b - 1) * 5}" y="${16 - h}" width="4" height="${h}" rx="1"
+        fill="${on ? '#0891b2' : '#e2e8f0'}"/>`;
+    });
+    return `<svg width="20" height="16" viewBox="0 0 20 16" style="display:inline-block;opacity:.75">
+      ${bars.join('')}</svg>`;
+  }
+
+  // ════════════════════════════════════════════════════
+  // RENDER — BED CARD
+  // ════════════════════════════════════════════════════
+  function renderCard(b, delayMs = 0) {
+    const m      = STATUS_META[b.status] || STATUS_META.OFFLINE;
+    const isOff  = b.status === 'OFFLINE';
+    const isFree = b.status === 'FREE';
+    const isEmg  = b.status === 'EMERGENCY';
+    const isRec  = b.status === 'RECORDING';
+
+    const patBlock = b.patient
+      ? `<div class="flex items-center gap-2 mb-2">
+          <div class="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center
+                      text-[10px] font-bold text-white"
+            style="background:${avatarBg(b.patient)}">${initials(b.patient)}</div>
+          <span class="text-xs text-slate-700 truncate">${b.patient}</span>
+        </div>`
+      : `<p class="text-xs italic mb-2 ${isFree ? 'text-slate-600' : isOff ? 'text-slate-700' : 'text-slate-600'}">
+          ${isFree ? 'Leito disponível' : isOff ? 'Sem sinal' : 'Sem paciente'}
+        </p>`;
+
+    const envBlock = b.temp !== null
+      ? `<div class="flex items-center justify-between mb-1.5">
+          <span class="text-xs font-semibold" style="color:${m.text}">
+            ${fmt1(b.temp)}°C
+            <span class="text-slate-600 font-normal"> · ${b.hum}%</span>
+          </span>
+          ${sparkline(b.tempHistory, m.text, b.num)}
+        </div>`
+      : '';
+
+    const footer = !isOff
+      ? `<div class="flex items-center justify-between mt-auto pt-2"
+            style="border-top:1px solid var(--border)">
+          <span class="text-[10px] text-slate-600" data-rtime="${b.heartbeat}">${relTime(b.heartbeat)}</span>
+          ${signalBars(b.signal)}
+        </div>`
+      : `<div class="mt-auto pt-2" style="border-top:1px solid var(--border)">
+          <span class="text-[10px] text-slate-700">Sem sinal</span>
+        </div>`;
+
+    const ackBtn = isEmg
+      ? `<button onclick="event.stopPropagation(); acknowledgeFromCard('${b.num}')"
+          class="w-full mt-2 py-1.5 rounded-lg text-xs font-semibold text-white
+                  transition-opacity hover:opacity-90"
+          style="background:#dc2626">Confirmar Atendimento</button>`
+      : '';
+
+    const recDot = isRec
+      ? `<span class="rec-dot inline-block w-1.5 h-1.5 rounded-full bg-purple-400 mr-1 align-middle"></span>`
+      : '';
+
+    return `<div id="card-${b.num}"
+      onclick="openPatientModal('${b.num}')"
+      class="bed-card card-in rounded-xl p-3.5 flex flex-col gap-0 min-h-[162px]
+            ${isEmg ? 'emg-glow' : ''} ${isOff || isFree ? 'opacity-55' : ''}"
+      style="background:var(--card);
+            border:1.5px solid ${m.border}22;
+            border-left:3px solid ${m.border};
+            animation-delay:${delayMs}ms">
+
+      <div class="flex items-start justify-between mb-2.5">
+        <div class="leading-none">
+          <p class="text-[9px] text-slate-600 uppercase tracking-wider">Leito</p>
+          <p class="text-xl font-bold text-slate-900 mt-0.5">${b.num}</p>
+        </div>
+        <span class="text-[9px] font-bold px-2 py-0.5 rounded-full border ${m.badge}">
+          ${recDot}${m.label}
+        </span>
+      </div>
+
+      ${patBlock}
+      ${envBlock}
+      ${footer}
+      ${ackBtn}
+    </div>`;
+  }
+
+  // ════════════════════════════════════════════════════
+  // RENDER GRID
+  // ════════════════════════════════════════════════════
+  function getFiltered() {
+    let list = Object.values(beds).sort((a, b) => a.num.localeCompare(b.num));
+    if (activeFilter === 'OFFLINE') {
+      list = list.filter(b => b.status === 'OFFLINE' || b.status === 'CRITICAL_OFFLINE');
+    } else if (activeFilter !== 'ALL') {
+      list = list.filter(b => b.status === activeFilter);
+    }
+    return list;
+  }
+
+  function renderGrid(stagger = false) {
+    const grid  = document.getElementById('bed-grid');
+    const empty = document.getElementById('empty-label');
+    const list  = getFiltered();
+    grid.innerHTML = list.map((b, i) => renderCard(b, stagger ? i * 28 : 0)).join('');
+    empty.classList.toggle('hidden', list.length > 0);
+    updateStats();
+  }
+
+  function refreshCard(num) {
+    const el = document.getElementById(`card-${num}`);
+    const b  = beds[num];
+    if (!el || !b) return;
+    const tmp = document.createElement('div');
+    tmp.innerHTML = renderCard(b, 0);
+    el.replaceWith(tmp.firstElementChild);
+    updateStats();
+  }
+
+  // ════════════════════════════════════════════════════
+  // STATS
+  // ════════════════════════════════════════════════════
+  function updateStats() {
+    const c = {};
+    Object.values(beds).forEach(b => { c[b.status] = (c[b.status] || 0) + 1; });
+    const g = k => c[k] || 0;
+    document.getElementById('stat-online').textContent    = g('ONLINE') + g('OCCUPIED') + g('RECORDING');
+    document.getElementById('stat-occupied').textContent  = g('OCCUPIED') + g('RECORDING');
+    document.getElementById('stat-emergency').textContent = g('EMERGENCY');
+    document.getElementById('stat-offline').textContent   = g('OFFLINE') + g('CRITICAL_OFFLINE');
+    document.getElementById('stat-free').textContent      = g('FREE');
+  }
+
+  // ════════════════════════════════════════════════════
+  // FILTER TABS
+  // ════════════════════════════════════════════════════
+  function setFilter(f) {
+  activeFilter = f;
+  ['ALL','ONLINE','OCCUPIED','EMERGENCY','OFFLINE'].forEach(k => {
+    const btn = document.getElementById(`tab-${k}`);
+    // Quando ativo, usa o turquesa do logo. Quando inativo, usa um cinza escuro legível.
+    if (k === f) { btn.style.background = '#0891b2'; btn.style.color = '#fff'; }
+    else         { btn.style.background = '';         btn.style.color = '#475569'; } 
+  });
+  renderGrid(false);
 }
 
-function delayedSim(ms, fn) {
-  const t = setTimeout(() => { if (simRunning) fn(); }, ms);
-  simTimers.push(t);
-}
+  // ════════════════════════════════════════════════════
+  // EMERGENCY BANNERS
+  // ════════════════════════════════════════════════════
+  function renderBanners() {
+    const el     = document.getElementById('banners');
+    const topbar = document.getElementById('topbar');
+    const active = alerts.filter(a => !a.acknowledged);
 
-function startSimulation() {
-  // evento a cada 2–4s
-  const tick = () => {
-    if (!simRunning) { simTimers.push(setTimeout(tick, 500)); return; }
-    runScenario();
-    const next = 2000 + Math.random() * 2000;
-    simTimers.push(setTimeout(tick, next));
+    el.innerHTML = active.map(a => {
+      const name = beds[a.bedNum]?.patient || '';
+      return `<div class="flex items-center justify-between px-5 py-2.5 banner-drop"
+                  style="background:#7f1d1d;border-bottom:1px solid #991b1b">
+        <div class="flex items-center gap-3">
+          <span class="text-lg">🚨</span>
+          <div class="leading-snug">
+            <p class="font-bold text-white text-sm">EMERGÊNCIA — Leito ${a.bedNum}</p>
+            <p class="text-red-200 text-xs">${name ? name + ' · ' : ''}${a.ward} · ${new Date(a.ts).toLocaleTimeString('pt-BR')}</p>
+          </div>
+        </div>
+        <button onclick="acknowledgeAlert('${a.id}')"
+          class="px-3 py-1 rounded-lg text-xs font-semibold text-white border border-red-400
+                hover:bg-red-700 transition">Confirmar ✓</button>
+      </div>`;
+    }).join('');
+
+    topbar.style.top = (active.length * 85) + 'px';
+  }
+
+  // ════════════════════════════════════════════════════
+  // ACKNOWLEDGE
+  // ════════════════════════════════════════════════════
+  function acknowledgeAlert(id) {
+    const a = alerts.find(x => x.id === id);
+    if (!a || a.acknowledged) return;
+    a.acknowledged = true;
+    const b = beds[a.bedNum];
+    if (b) {
+      b.status = b.patient ? 'OCCUPIED' : 'ONLINE';
+      renderGrid();
+    }
+    renderBanners();
+    logEvent('ack', `Leito ${a.bedNum}`, 'Emergência confirmada');
+    showToast(`✅ Leito ${a.bedNum} — emergência atendida`, 'success');
+    updateAlertSound();
+  }
+
+  function acknowledgeFromCard(num) {
+    const a = alerts.find(x => x.bedNum === num && !x.acknowledged);
+    if (a) acknowledgeAlert(a.id);
+  }
+
+  // ════════════════════════════════════════════════════
+  // DISPATCHERS
+  // ════════════════════════════════════════════════════
+  function dispatchStatus(num, status) {
+    const b = beds[num];
+    if (!b) return;
+    const prev = b.status;
+    b.status = status;
+    if (status !== 'OFFLINE') b.heartbeat = Date.now();
+    renderGrid();
+    logEvent('status', `Leito ${num}`,
+      `${prev} → <b style="color:${STATUS_META[status]?.text ?? '#fff'}">${status}</b>`);
+  }
+
+  function dispatchEnvironment(num, temp, hum) {
+    const b = beds[num];
+    if (!b) return;
+    b.temp      = temp;
+    b.hum       = hum;
+    b.heartbeat = Date.now();
+    b.tempHistory = [...(b.tempHistory ?? []), temp].slice(-8);
+    b.lux = Math.floor(rnd(60, 750));
+    if (Math.random() < 0.15) b.posture = pick(POSTURES);
+    refreshCard(num);
+    logEvent('env', `Leito ${num}`, `🌡 ${fmt1(temp)}°C · 💧 ${(+hum).toFixed(0)}%`);
+  }
+
+  function dispatchEmergency(num) {
+    const b = beds[num];
+    if (!b || b.status === 'EMERGENCY') return;
+    const id = `e${Date.now()}${num}`;
+    alerts.unshift({ id, bedNum: num, ward: b.ward, ts: new Date().toISOString(), acknowledged: false });
+    if (alerts.length > 100) alerts.length = 100;
+    b.status    = 'EMERGENCY';
+    b.heartbeat = Date.now();
+    renderGrid();
+    renderBanners();
+    logEvent('emergency', `Leito ${num}`, `🚨 Chamada de emergência!${b.patient ? ' · ' + b.patient : ''}`);
+    showToast(`🚨 EMERGÊNCIA — Leito ${num}${b.patient ? ' · ' + b.patient : ''}`, 'emergency');
+    updateAlertSound();
+  }
+
+  function dispatchRecording(num) {
+    const b = beds[num];
+    if (!b || b.status !== 'OCCUPIED') return;
+    b.status = 'RECORDING';
+    renderGrid();
+    logEvent('audio', `Leito ${num}`, '🎙 Captura de áudio iniciada');
+    delay(rnd(3500, 5500), () => {
+      if (b.status === 'RECORDING') {
+        b.status = 'OCCUPIED';
+        renderGrid();
+        logEvent('audio', `Leito ${num}`, '✓ Áudio enviado ao servidor');
+        b.audioTranscripts = b.audioTranscripts || [];
+        b.audioTranscripts.unshift({
+          time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+          text: pick(AUDIO_TEMPLATES),
+          conf: Math.floor(rnd(82, 98)),
+        });
+        if (b.audioTranscripts.length > 10) b.audioTranscripts.length = 10;
+      }
+    });
+  }
+
+  // ════════════════════════════════════════════════════
+  // TOAST
+  // ════════════════════════════════════════════════════
+  const TOAST_STYLES = {
+    emergency: 'background:#7f1d1d;border:1px solid #ef4444;color:#fecaca',
+    success:   'background:#14532d;border:1px solid #22c55e;color:#bbf7d0',
+    info:      'background:#0c1a2e;border:1px solid #0891b2;color:#bae6fd',
   };
-  simTimers.push(setTimeout(tick, 1500));
-}
+  function showToast(msg, type = 'info') {
+    const c  = document.getElementById('toasts');
+    const el = document.createElement('div');
+    el.className = 'pointer-events-auto rounded-xl px-4 py-3 text-sm font-medium shadow-2xl';
+    el.style.cssText = (TOAST_STYLES[type] || TOAST_STYLES.info) + ';animation:toast-in .3s ease-out forwards';
+    el.textContent = msg;
+    c.appendChild(el);
+    const ttl = type === 'emergency' ? 7000 : 3500;
+    setTimeout(() => {
+      el.style.animation = 'toast-out .3s ease-in forwards';
+      setTimeout(() => el.remove(), 300);
+    }, ttl);
+  }
 
-// ---------------------------------------------------------------
-// LOG
-// ---------------------------------------------------------------
-function logEvent(type, html, color='#d1d5db') {
-  const log = document.getElementById('event-log');
-  const blank = log.querySelector('p.text-gray-500');
-  if (blank) blank.remove();
+  // ════════════════════════════════════════════════════
+  // EVENT LOG
+  // ════════════════════════════════════════════════════
+  const LOG_BADGE = {
+    emergency: 'background:#7f1d1d;color:#fca5a5',
+    status:    'background:#0c1a2e;color:#67e8f9',
+    env:       'background:#082f49;color:#7dd3fc',
+    audio:     'background:#2e1065;color:#d8b4fe',
+    ack:       'background:#14532d;color:#4ade80',
+    system:    'background:#1e293b;color:#94a3b8',
+  };
 
-  const ts = new Date().toLocaleTimeString('pt-BR');
-  const p = document.createElement('p');
-  p.className = 'log-entry';
-  p.style.color = color;
-  p.innerHTML = `<span class="text-gray-500">[${ts}]</span> ${html}`;
-  log.prepend(p);
+  function logEvent(type, src, msg) {
+    const log   = document.getElementById('event-log');
+    const blank = log.querySelector('p.text-slate-600');
+    if (blank) blank.remove();
 
-  // mantém no máx 80 linhas
-  while (log.children.length > 80) log.removeChild(log.lastChild);
-}
+    const ts    = new Date().toLocaleTimeString('pt-BR');
+    const badge = LOG_BADGE[type] || LOG_BADGE.system;
+    const el    = document.createElement('div');
+    el.className = 'log-in flex gap-2 items-start';
 
-function clearLog() {
-  document.getElementById('event-log').innerHTML =
-    '<p class="text-gray-500">— log limpo —</p>';
-}
+    el.innerHTML = `
+      <span class="flex-shrink-0 font-mono text-[10px] text-slate-500 w-14 mt-0.5">${ts}</span>
+      <span class="flex-shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded mt-0.5"
+        style="${badge}">${type}</span>
+      <div class="text-[11px] leading-snug min-w-0">
+        <span class="text-slate-700 font-semibold">${src}</span>
+        <span class="text-slate-600 ml-1">${msg}</span>
+      </div>`;
 
-// ---------------------------------------------------------------
-// CLOCK
-// ---------------------------------------------------------------
-function startClock() {
-  const el = document.getElementById('clock');
-  const update = () => el.textContent = new Date().toLocaleTimeString('pt-BR');
-  update();
-  setInterval(update, 1000);
-}
+    const bedMatch = src.match(/Leito\s+(\d+)/i);
+    if (bedMatch) {
+      const bNum = String(+bedMatch[1]).padStart(2, '0');
+      if (!bedHistory[bNum]) bedHistory[bNum] = [];
+      bedHistory[bNum].unshift({ time: ts, type, msg: msg.replace(/<[^>]+>/g, '') });
+      if (bedHistory[bNum].length > 20) bedHistory[bNum].length = 20;
+    }
+    log.prepend(el);
+    while (log.children.length > 120) log.removeChild(log.lastChild);
+  }
 
-// ---------------------------------------------------------------
-// CONTROLS
-// ---------------------------------------------------------------
-function toggleSimulation() {
-  simRunning = !simRunning;
-  const btn = document.getElementById('btn-sim');
-  const dot = document.getElementById('ws-dot');
-  const lbl = document.getElementById('ws-label');
-  if (simRunning) {
+  function clearLog() {
+    document.getElementById('event-log').innerHTML =
+      '<p class="text-xs text-slate-600 text-center py-6">— log limpo —</p>';
+  }
+
+  // ════════════════════════════════════════════════════
+  // SCENARIOS
+  // ════════════════════════════════════════════════════
+  const SCENARIOS = [
+    // 0 — heartbeat ambiental (mais frequente)
+    () => {
+      const list = beds_by(['ONLINE','OCCUPIED','RECORDING']);
+      if (!list.length) return;
+      const b = pick(list);
+      dispatchEnvironment(b.num, +rnd(21, 29).toFixed(1), +rnd(44, 83).toFixed(0));
+    },
+    // 1 — leito fica offline e reconecta
+    () => {
+      const list = beds_by(['ONLINE']);
+      if (!list.length) return;
+      const b = pick(list);
+      dispatchStatus(b.num, 'OFFLINE');
+      delay(rnd(6000, 13000), () => {
+        if (b.status === 'OFFLINE') dispatchStatus(b.num, 'ONLINE');
+      });
+    },
+    // 2 — emergência
+    () => {
+      const list = beds_by(['ONLINE','OCCUPIED']);
+      if (!list.length) return;
+      dispatchEmergency(pick(list).num);
+    },
+    // 3 — admissão de paciente
+    () => {
+      const list = beds_by(['FREE','ONLINE']);
+      if (!list.length) return;
+      const b = pick(list);
+      b.patient = pick(PATIENTS);
+      b.temp    = +rnd(22, 27).toFixed(1);
+      b.hum     = +rnd(48, 76).toFixed(0);
+      b.tempHistory    = [b.temp];
+      b.lux            = Math.floor(rnd(80, 650));
+      b.posture        = pick(POSTURES);
+      b.audioTranscripts = b.audioTranscripts || [];
+      b.signal  = Math.floor(rnd(2, 5));
+      dispatchStatus(b.num, 'OCCUPIED');
+      logEvent('status', `Leito ${b.num}`, `Paciente ${b.patient} admitido`);
+    },
+    // 4 — leito ocupado perde sinal (crítico)
+    () => {
+      const list = beds_by(['OCCUPIED']);
+      if (!list.length) return;
+      const b = pick(list);
+      dispatchStatus(b.num, 'CRITICAL_OFFLINE');
+      delay(rnd(8000, 16000), () => {
+        if (b.status === 'CRITICAL_OFFLINE') dispatchStatus(b.num, 'OCCUPIED');
+      });
+    },
+    // 5 — gravação de áudio (botão pressionado)
+    () => {
+      const list = beds_by(['OCCUPIED']);
+      if (!list.length) return;
+      dispatchRecording(pick(list).num);
+    },
+    // 6 — alta hospitalar
+    () => {
+      const list = beds_by(['OCCUPIED']);
+      if (list.length < 4) return;
+      const b = pick(list);
+      const name = b.patient;
+      b.patient = null; b.temp = null; b.hum = null; b.tempHistory = [];
+      dispatchStatus(b.num, 'FREE');
+      if (name) logEvent('status', `Leito ${b.num}`, `${name} recebeu alta`);
+    },
+    // 7 — sinal degradado
+    () => {
+      const list = beds_by(['ONLINE','OCCUPIED']);
+      if (!list.length) return;
+      const b = pick(list);
+      b.signal = Math.max(1, b.signal - 1);
+      refreshCard(b.num);
+      logEvent('system', `Leito ${b.num}`, 'Sinal WiFi degradado');
+    },
+  ];
+
+  const WEIGHTS = [52, 12, 8, 11, 8, 9, 5, 5];
+
+  function weightedPick(w) {
+    let t = w.reduce((s, x) => s + x, 0), r = Math.random() * t;
+    for (let i = 0; i < w.length; i++) { r -= w[i]; if (r <= 0) return i; }
+    return 0;
+  }
+
+  // ════════════════════════════════════════════════════
+  // EMERGENCY SOUND (Web Audio API)
+  // ════════════════════════════════════════════════════
+  let _audioCtx       = null;
+  let _alertSoundTimer = null;
+
+  function _getCtx() {
+    if (!_audioCtx) {
+      _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      // Resume on any user gesture (browsers block autoplay)
+      document.addEventListener('click', () => {
+        if (_audioCtx.state === 'suspended') _audioCtx.resume();
+      }, { passive: true });
+    }
+    if (_audioCtx.state === 'suspended') _audioCtx.resume();
+    return _audioCtx;
+  }
+
+  function _beep(freq, durationMs, gainLevel, delayS) {
+    try {
+      const ctx = _getCtx();
+      const osc = ctx.createOscillator();
+      const gn  = ctx.createGain();
+      osc.connect(gn);
+      gn.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + delayS);
+      const dur = durationMs / 1000;
+      gn.gain.setValueAtTime(0, ctx.currentTime + delayS);
+      gn.gain.linearRampToValueAtTime(gainLevel, ctx.currentTime + delayS + 0.012);
+      gn.gain.setValueAtTime(gainLevel,  ctx.currentTime + delayS + dur - 0.03);
+      gn.gain.linearRampToValueAtTime(0, ctx.currentTime + delayS + dur);
+      osc.start(ctx.currentTime + delayS);
+      osc.stop(ctx.currentTime  + delayS + dur + 0.02);
+    } catch (_) { /* AudioContext unavailable */ }
+  }
+
+  function _playAlertBeep() {
+    // Bipe duplo suave: 600 Hz → 750 Hz, ganho baixo (0.10)
+    _beep(600, 140, 0.10, 0.00);
+    _beep(750, 140, 0.10, 0.22);
+  }
+
+  function updateAlertSound() {
+    const hasActive = alerts.some(a => !a.acknowledged);
+    if (hasActive) {
+      if (!_alertSoundTimer) {
+        _playAlertBeep();
+        _alertSoundTimer = setInterval(_playAlertBeep, 3500);
+      }
+    } else {
+      if (_alertSoundTimer) {
+        clearInterval(_alertSoundTimer);
+        _alertSoundTimer = null;
+      }
+    }
+  }
+
+  // ════════════════════════════════════════════════════
+  // SIMULATION LOOP
+  // ════════════════════════════════════════════════════
+  function loop() {
+    if (simRunning) SCENARIOS[weightedPick(WEIGHTS)]();
+    delay(rnd(1800, 3400), loop);
+  }
+
+  function delay(ms, fn) {
+    const t = setTimeout(() => fn && fn(), ms);
+    timers.push(t);
+    return t;
+  }
+
+  // Relative-time tick (updates [data-rtime] spans every 10s)
+  setInterval(() => {
+    document.querySelectorAll('[data-rtime]').forEach(el => {
+      el.textContent = relTime(Number(el.dataset.rtime));
+    });
+  }, 10_000);
+
+  // ════════════════════════════════════════════════════
+  // CONTROLS
+  // ════════════════════════════════════════════════════
+  function toggleSimulation() {
+    simRunning = !simRunning;
+    const btn = document.getElementById('btn-pause');
+    const dot = document.getElementById('ws-dot');
+    const lbl = document.getElementById('ws-label');
+    if (simRunning) {
     btn.textContent = '⏸ Pausar';
-    dot.style.backgroundColor = '#86efac';
-    lbl.textContent = 'WebSocket: Conectado';
-    logEvent('system','▶ Simulação retomada','#67e8f9');
+    btn.style.background = '#008fa3';
+    btn.style.color = '#fff';
+    dot.style.background = '#10b981'; // tom emerald-500 mais vivo
+    dot.className = 'w-2 h-2 rounded-full dot-blink flex-shrink-0';
+    lbl.textContent = 'WebSocket';
+    lbl.style.color = '#334155';
+    logEvent('system', 'Sistema', '▶ Simulação retomada');
   } else {
     btn.textContent = '▶ Retomar';
-    dot.style.backgroundColor = '#fde68a';
-    lbl.textContent = 'WebSocket: Pausado';
-    logEvent('system','⏸ Simulação pausada','#fde68a');
+    btn.style.background = '#e2e8f0'; // Fundo cinza claro para botão inativo
+    btn.style.color = '#334155';       // Texto escuro
+    dot.style.background = '#f59e0b'; // tom amber-500
+    dot.className = 'w-2 h-2 rounded-full flex-shrink-0';
+    lbl.textContent = 'Pausado';
+    lbl.style.color = '#475569';
+    logEvent('system', 'Sistema', '⏸ Simulação pausada');
   }
-}
+  }
 
-function resetAll() {
-  simTimers.forEach(clearTimeout);
-  simTimers = [];
-  simRunning = true;
-  document.getElementById('btn-sim').textContent = '⏸ Pausar';
-  document.getElementById('ws-dot').style.backgroundColor = '#86efac';
-  document.getElementById('ws-label').textContent = 'WebSocket: Conectado';
-  document.getElementById('navbar').style.marginTop = '0';
-  initBeds();
-  renderAllBeds();
-  clearLog();
-  logEvent('system','🔄 Dashboard resetado — novos dados carregados','#67e8f9');
-  startSimulation();
-}
+  function resetAll() {
+    timers.forEach(clearTimeout); timers = [];
+    simRunning = true;
+    closePatientModal();
+    document.getElementById('btn-pause').textContent = '⏸ Pausar';
+  document.getElementById('btn-pause').style.background = '#008fa3';
+  document.getElementById('btn-pause').style.color = '#fff';
+  document.getElementById('ws-dot').style.background = '#10b981';
+  document.getElementById('ws-dot').className = 'w-2 h-2 rounded-full dot-blink flex-shrink-0';
+  document.getElementById('ws-label').textContent = 'WebSocket';
+  document.getElementById('ws-label').style.color = '#334155';
+    initBeds();
+    updateAlertSound();
+    setFilter('ALL');
+    clearLog();
+    logEvent('system', 'Sistema', '🔄 Dashboard reiniciado');
+    delay(600, loop);
+  }
 
-// ---------------------------------------------------------------
-// BOOTSTRAP
-// ---------------------------------------------------------------
-document.addEventListener('DOMContentLoaded', () => {
-  startClock();
-  initBeds();
-  renderAllBeds();
-  logEvent('system', '🟢 Dashboard iniciado — simulando WebSocket events...', '#67e8f9');
-  startSimulation();
-});
-</script>
-</body>
-</html>
+  // ════════════════════════════════════════════════════
+  // CLOCK
+  // ════════════════════════════════════════════════════
+  function startClock() {
+    const el  = document.getElementById('clock');
+    const upd = () => {
+      const d = new Date();
+      el.textContent =
+        d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) +
+        '  ' + d.toLocaleTimeString('pt-BR');
+    };
+    upd(); setInterval(upd, 1000);
+  }
+
+  // ════════════════════════════════════════════════════
+  // PATIENT MODAL
+  // ════════════════════════════════════════════════════
+
+  function openPatientModal(num) {
+    const b = beds[num];
+    if (!b) return;
+    document.getElementById('patient-modal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    _fillModalHeader(b);
+    _fillModalBody(b);
+  }
+
+  function closePatientModal() {
+    document.getElementById('patient-modal').classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+
+  function handleModalBackdropClick(e) {
+    if (e.target.id === 'patient-modal') closePatientModal();
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closePatientModal();
+  });
+
+  function _fillModalHeader(b) {
+    const m  = STATUS_META[b.status] || STATUS_META.OFFLINE;
+    const av = document.getElementById('modal-avatar');
+    if (b.patient) {
+      av.textContent = initials(b.patient);
+      av.style.background = avatarBg(b.patient);
+      document.getElementById('modal-patient-name').textContent = b.patient;
+    } else {
+      av.textContent = b.num;
+      av.style.background = '#94a3b8';
+      document.getElementById('modal-patient-name').textContent =
+        b.status === 'FREE' ? 'Leito Disponível' : 'Sem Comunicação';
+    }
+    document.getElementById('modal-device-id').textContent = `KIIRA-V2 · ${b.ward}`;
+    document.getElementById('modal-bed-label').textContent  = `Leito ${b.num}`;
+    const badge = document.getElementById('modal-status-badge');
+    badge.textContent = m.label;
+    badge.className   = `text-[9px] font-bold px-2.5 py-1 rounded-full border ${m.badge}`;
+  }
+
+  function _fillModalBody(b) {
+    const body = document.getElementById('modal-body');
+    if (b.status === 'FREE' || b.status === 'OFFLINE' || b.status === 'CRITICAL_OFFLINE') {
+      body.innerHTML = _modalEmptyHTML(b);
+      return;
+    }
+    body.innerHTML = _modalVitalsHTML(b) + _modalTimelineHTML(b) + _modalAudioHTML(b);
+  }
+
+  function _modalEmptyHTML(b) {
+    const isFree  = b.status === 'FREE';
+    const color   = isFree ? '#94a3b8' : '#f97316';
+    const icon    = isFree
+      ? '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M12 8v4m0 4h.01"/>'
+      : '<path d="M12 9v4m0 4h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>';
+    return `
+      <div class="flex flex-col items-center text-center py-10 px-4">
+        <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
+          style="background:#f8fafc;border:1px solid #e2e8f0">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none"
+            stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            ${icon}
+          </svg>
+        </div>
+        <p class="font-semibold text-slate-700 text-sm">
+          ${isFree ? 'Leito Disponível para Admissão' : 'Dispositivo Sem Comunicação'}
+        </p>
+        <p class="text-xs text-slate-500 mt-2 max-w-xs leading-relaxed">
+          ${isFree
+            ? 'Nenhum paciente admitido. O dispositivo KIIRA V2 está em modo standby, aguardando ativação.'
+            : 'O firmware não responde ao broker MQTT. Verifique a conexão WiFi e o status da rede local.'}
+        </p>
+        <div class="mt-5 w-full rounded-xl px-4 py-3 text-left"
+          style="background:#f8fafc;border:1px solid #e2e8f0">
+          <p class="text-[10px] font-mono font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Diagnóstico</p>
+          <p class="text-xs font-mono text-slate-600">KIIRA-V2 · ${b.ward} · Leito ${b.num}</p>
+          <p class="text-xs font-mono text-slate-500 mt-0.5">
+            Status MQTT: <span class="font-semibold" style="color:${color}">${isFree ? 'STANDBY' : 'TIMEOUT'}</span>
+          </p>
+          <p class="text-xs font-mono text-slate-500 mt-0.5">
+            Último heartbeat: ${b.heartbeat ? relTime(b.heartbeat) : 'Nunca'}
+          </p>
+        </div>
+      </div>`;
+  }
+
+  function _vitalCard(icon, label, value, color, sub, warn) {
+    return `
+      <div class="rounded-xl p-3" style="background:#f8fafc;border:1px solid ${warn ? '#fecdd3' : '#e2e8f0'}">
+        <div class="flex items-center gap-1.5 mb-1.5">
+          <span class="text-sm leading-none">${icon}</span>
+          <p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wide truncate">${label}</p>
+        </div>
+        <p class="text-lg font-bold leading-tight" style="color:${color}">${value}</p>
+        <p class="text-[10px] mt-0.5 ${warn ? 'text-red-500 font-semibold' : 'text-slate-400'}">${sub}</p>
+      </div>`;
+  }
+
+  function _modalVitalsHTML(b) {
+    const lux     = b.lux  ?? Math.floor(rnd(80, 650));
+    const posture = b.posture || 'Deitado';
+    const tempWarn = b.temp != null && b.temp > 27;
+    const humWarn  = b.hum  != null && b.hum  > 75;
+    const luxLabel = lux < 100 ? 'Ambiente escuro' : lux > 600 ? 'Iluminação alta' : 'Adequado';
+    const postWarn = posture === 'Agitado';
+    return `
+      <div>
+        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Sensores em Tempo Real</p>
+        <div class="grid grid-cols-2 gap-2">
+          ${_vitalCard('🌡', 'Temperatura',       b.temp != null ? fmt1(b.temp) + '°C' : '—', tempWarn ? '#dc2626' : '#0891b2', tempWarn ? '⚠ Elevada' : 'Normal', tempWarn)}
+          ${_vitalCard('💧', 'Umidade Relativa',  b.hum  != null ? b.hum + '%' : '—', humWarn ? '#d97706' : '#0d9488', humWarn ? '⚠ Alta' : 'Normal', humWarn)}
+          ${_vitalCard('💡', 'Luminosidade (LDR)', lux + ' lux', '#d97706', luxLabel, false)}
+          ${_vitalCard(POSTURES_LABEL[posture] || '🔄', 'Postura (MPU6050)', posture, '#7c3aed', postWarn ? '⚠ Verificar paciente' : 'Monitorando', postWarn)}
+        </div>
+      </div>`;
+  }
+
+  function _modalTimelineHTML(b) {
+    const events = (bedHistory[b.num] || []).slice(0, 8);
+    const rows = events.length === 0
+      ? '<p class="text-xs text-slate-400 italic py-1">Nenhum evento registrado ainda.</p>'
+      : `<div class="space-y-2">${events.map(ev => `
+          <div class="flex gap-2.5 items-start">
+            <span class="flex-shrink-0 font-mono text-[10px] text-slate-400 w-12 leading-tight mt-0.5">${ev.time}</span>
+            <div class="flex-1 min-w-0 flex items-start gap-1.5 flex-wrap">
+              <span class="flex-shrink-0 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded"
+                style="${LOG_BADGE[ev.type] || LOG_BADGE.system}">${ev.type}</span>
+              <span class="text-xs text-slate-600 leading-snug">${ev.msg}</span>
+            </div>
+          </div>`).join('')}</div>`;
+    return `
+      <div>
+        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Histórico de Eventos</p>
+        ${rows}
+      </div>`;
+  }
+
+  function _modalAudioHTML(b) {
+    const transcripts = b.audioTranscripts || [];
+    const rows = transcripts.length === 0
+      ? '<p class="text-xs text-slate-400 italic py-1">Nenhuma captura ainda. O botão físico do KIIRA V2 inicia a gravação.</p>'
+      : `<div class="space-y-2">${transcripts.slice(0, 5).map(t => `
+          <div class="flex gap-3 items-start rounded-xl px-3 py-2.5"
+            style="background:#faf5ff;border:1px solid #e9d5ff">
+            <span class="text-base flex-shrink-0 leading-none mt-0.5">🎙</span>
+            <div class="min-w-0">
+              <p class="text-[10px] font-mono text-slate-400">${t.time}</p>
+              <p class="text-xs text-slate-700 mt-0.5 leading-snug">${t.text}</p>
+              <p class="text-[10px] text-slate-400 mt-1">
+                Transcrito via Whisper · Confiança
+                <span class="text-purple-600 font-semibold">${t.conf}%</span>
+              </p>
+            </div>
+          </div>`).join('')}</div>`;
+    return `
+      <div class="pb-1">
+        <div class="flex items-center justify-between mb-2">
+          <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Registros de Voz (IoT Audio)</p>
+          <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border
+            bg-purple-50 text-purple-600 border-purple-200">Whisper AI</span>
+        </div>
+        ${rows}
+      </div>`;
+  }
+
+  // ════════════════════════════════════════════════════
+  // BOOT
+  // ════════════════════════════════════════════════════
+  document.addEventListener('DOMContentLoaded', () => {
+    startClock();
+    initBeds();
+    setFilter('ALL');
+    renderGrid(true);
+    logEvent('system', 'Sistema', '🟢 Dashboard iniciado — WebSocket conectado');
+    delay(900, loop);
+  });
+  </script>
+  </body>
+  </html>

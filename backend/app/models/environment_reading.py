@@ -4,7 +4,7 @@ VitalKare — Model: EnvironmentReading (série temporal — hipertabela Timesca
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Float, ForeignKey
+from sqlalchemy import Boolean, Float, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -43,6 +43,8 @@ class EnvironmentReading(Base):
     motion_detected: Mapped[bool | None] = mapped_column(
         Boolean, default=False, nullable=True
     )
+    # Postura derivada do acelerômetro MPU6050 (ex: "Deitado", "Sentado")
+    posture_label: Mapped[str | None] = mapped_column(String(50), nullable=True)
     # Coluna de tempo usada para particionamento TimescaleDB
     recorded_at: Mapped[datetime] = mapped_column(
         primary_key=True,

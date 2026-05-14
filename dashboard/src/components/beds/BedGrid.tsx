@@ -3,9 +3,10 @@ import { useBedsStore } from '@/store/bedsStore'
 
 interface BedGridProps {
   onAcknowledge?: (bedId: string) => void
+  onBedClick?: (bedId: string) => void
 }
 
-export function BedGrid({ onAcknowledge }: BedGridProps) {
+export function BedGrid({ onAcknowledge, onBedClick }: BedGridProps) {
   const beds = useBedsStore((s) => Object.values(s.beds))
 
   // Emergências primeiro
@@ -26,7 +27,7 @@ export function BedGrid({ onAcknowledge }: BedGridProps) {
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       {sorted.map((bed) => (
-        <BedCard key={bed.id} bed={bed} onAcknowledge={onAcknowledge} />
+        <BedCard key={bed.id} bed={bed} onAcknowledge={onAcknowledge} onClick={onBedClick} />
       ))}
     </div>
   )

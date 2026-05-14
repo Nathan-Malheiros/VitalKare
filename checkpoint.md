@@ -1,6 +1,9 @@
-# VitalKare — Checkpoint (13/05/2026)
+# VitalKare — Checkpoint (PROJETO FINALIZADO)
 
-## ✅ Concluído nesta sessão
+## ✅ Concluído — Sessão 1 (backend base)
+- Alembic migrations, schemas Pydantic v2, modelos SQLAlchemy async, /health, JWT refresh
+
+## ✅ Concluído — Sessão 2 (firmware + dashboard)
 
 ### Arquivos criados
 | Arquivo | Descrição |
@@ -30,68 +33,79 @@
 | `firmware/main/main.c` | Include `mqtt_client.h` → `vitalkare_mqtt.h`; camera/áudio descomentados; `s_audio_task_handle` para notify |
 | `firmware/config/hardware_config.h` | Aliases: `HW_I2S_PORT`, `HW_AUDIO_CLK_GPIO`, `HW_AUDIO_DATA_GPIO`, `HW_AUDIO_SAMPLE_RATE_HZ`, `HW_CAM_JPEG_QUALITY` |
 
+## ✅ Concluído — Sessão 3 (finalização)
+
+| Item | Arquivo | Status |
+|---|---|---|
+| Aliases faltantes | `firmware/config/app_config.h` | ✅ |
+| Driver acelerômetro | `firmware/components/sensors/mpu6050.c` | ✅ (já existia) |
+| Script provisionamento NVS | `firmware/tools/provision.py` | ✅ |
+| Serviço WebSocket singleton | `dashboard/src/services/websocketService.ts` | ✅ (já existia) |
+| Config Vite para LAN | `dashboard/vite.config.ts` | ✅ |
+| Variáveis do dashboard | `dashboard/.env.local.example` | ✅ |
+| Variáveis do Docker | `docker/.env.example` | ✅ |
+
 ---
 
-## ❌ Ainda falta
+## 🚀 Para colocar em funcionamento
 
-### 1 · `firmware/config/app_config.h`
-Adicionar os aliases ausentes (não interrompe o build, mas é referenciado pelos `.c` novos):
+### 1. Configure o firmware
+
+Edite `firmware/config/device_config.h` com os valores reais:
 ```c
-#define APP_AUDIO_RECORD_MS             (APP_AUDIO_MAX_DURATION_S * 1000)
-#define AUDIO_BUFFER_BYTES              (HW_MIC_SAMPLE_RATE_HZ * APP_AUDIO_MAX_DURATION_S * 2)
-#define APP_CAMERA_FRAME_INTERVAL_MS    2000
-#define APP_DISPLAY_REFRESH_MS          APP_DISPLAY_REFRESH_INTERVAL_MS
+#define DEVICE_WIFI_SSID    "MinhaRede"
+#define DEVICE_WIFI_PASS    "MinhaSenha"
+#define DEVICE_MQTT_HOST    "192.168.1.100"   // IP do notebook na LAN
+#define DEVICE_ID           "leito01"
+#define DEVICE_WARD_ID      "ala-a"
 ```
 
-### 2 · `firmware/components/sensors/mpu6050.c` — CRIAR
-- MPU6050 via I2C_NUM_0, addr `0x68`
-- Registros: `PWR_MGMT_1` (0x6B), `ACCEL_XOUT_H` (0x3B), `GYRO_XOUT_H` (0x43)
-- Tratar `ESP_ERR_INVALID_STATE` (barramento I2C já instalado pelo OLED)
-- Funções: `mpu6050_init()`, `mpu6050_read(mpu6050_reading_t*)`, `mpu6050_is_motion_detected()`
+### 2. Suba o backend com Docker
 
-### 3 · `firmware/tools/provision.py` — CRIAR
-- Script Python para gravar credenciais na partição NVS via serial
-- Porta: COM16 (ou argumento `--port`)
-- Prompts interativos: SSID, senha, IP do broker MQTT, porta, device_id, ward_id
-- Usa `esptool` + `nvs_partition_gen.py`
-
-### 4 · `dashboard/src/services/websocketService.ts` — CRIAR
-- Singleton: `WebSocketService.getInstance()`
-- Métodos: `connect(token)`, `disconnect()`, `on(type, cb)`, `off(type, cb)`, `send(data)`
-- Auto-reconnect com backoff exponencial
-- URL base: `${VITE_WS_URL || 'ws://localhost:8000'}/ws/dashboard`
-
-### 5 · `dashboard/vite.config.ts` — ATUALIZAR
-- Proxy do backend deve usar variável de ambiente:
-  ```ts
-  target: `http://${process.env.VITE_BACKEND_HOST || 'localhost'}:8000`
-  ```
-
-### 6 · `dashboard/.env.local.example` — CRIAR
-```
-VITE_BACKEND_HOST=192.168.1.100
-VITE_WS_URL=ws://192.168.1.100:8000
+```bash
+cd docker
+cp .env.example .env
+# Edite .env com senhas reais se necessário
+docker compose up -d
 ```
 
-### 7 · `docker/.env.example` — CRIAR
-```
-POSTGRES_PASSWORD=vitalkare_pg
-MINIO_ROOT_USER=vitalkare
-MINIO_ROOT_PASSWORD=vitalkare_minio
-REDIS_PASSWORD=vitalkare_redis
+### 3. Configure o dashboard
+
+```bash
+cd dashboard
+cp .env.local.example .env.local
+# Edite VITE_BACKEND_HOST com o IP real do notebook
+npm install
+npm run dev
 ```
 
-### 8 · Flash / Teste final
-1. Preencher `firmware/config/device_config.h` com WiFi real + IP do notebook na LAN
-2. Rodar: `cd firmware && idf.py -p COM16 -b 921600 flash monitor`
+### 4. Flash do firmware
+
+```bash
+cd firmware
+# Opção A — provisionamento via script (recomendado)
+pip install esptool
+python tools/provision.py --port COM16
+
+# Opção B — flash direto (usa valores hard-coded em device_config.h)
+idf.py -p COM16 -b 921600 flash monitor
+```
+
+### 5. Provisionar múltiplos dispositivos
+
+```bash
+python firmware/tools/provision.py --port COM16
+# O script solicitará SSID, senha, IP do broker, device_id e ward_id interativamente
+# Para apenas gerar o binário sem flash:
+python firmware/tools/provision.py --port COM16 --dry-run
+```
 
 ---
 
-## Ordem recomendada ao retornar
-1. `app_config.h` aliases  
-2. `mpu6050.c`  
-3. `provision.py`  
-4. `websocketService.ts`  
-5. `vite.config.ts` + `.env.local.example`  
-6. `docker/.env.example`  
-7. Preencher `device_config.h` → **flash**
+## Notas importantes
+
+- **`firmware/config/device_config.h`** contém credenciais — não commitar com valores reais
+- **`docker/.env`** e **`dashboard/.env.local`** — adicionar ao `.gitignore`
+- O broker Mosquitto escuta em `0.0.0.0:1883` — o ESP32 conecta via IP da LAN
+- A partição NVS tem offset padrão `0x9000` (24 KB) — confirme em `firmware/partitions.csv`
+

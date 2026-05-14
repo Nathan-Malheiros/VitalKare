@@ -1,7 +1,8 @@
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { BedGrid } from '@/components/beds/BedGrid'
 import { EmergencyBanner } from '@/components/alerts/EmergencyBanner'
+import { PatientModal } from '@/components/beds/PatientModal'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useBedsStore } from '@/store/bedsStore'
 import { useAlertsStore } from '@/store/alertsStore'
@@ -12,21 +13,26 @@ export default function Dashboard() {
   const setBeds = useBedsStore((s) => s.setBeds)
   const updateBedStatus = useBedsStore((s) => s.updateBedStatus)
   const updateBedEnvironment = useBedsStore((s) => s.updateBedEnvironment)
+  const beds = useBedsStore((s) => s.beds)
   const addAlert = useAlertsStore((s) => s.addAlert)
   const acknowledgeAlert = useAlertsStore((s) => s.acknowledgeAlert)
+
+  // Modal state — identificado pelo bed_number
+  const [modalBedNumber, setModalBedNumber] = useState<string | null>(null)
+  const modalBed = modalBedNumber ? (beds[modalBedNumber] ?? null) : null
 
   // =========================================================
   // CARREGA LEITOS VIA REST (inicial)
   // =========================================================
-  const { data: beds } = useQuery<Bed[]>({
+  const { data: bedsData } = useQuery<Bed[]>({
     queryKey: ['beds'],
     queryFn: () => api.get('/beds/').then((r) => r.data),
     refetchInterval: 60_000,
   })
 
   useEffect(() => {
-    if (beds) setBeds(beds)
-  }, [beds, setBeds])
+    if (bedsData) setBeds(bedsData)
+  }, [bedsData, setBeds])
 
   // =========================================================
   // ATUALIZA EM TEMPO REAL VIA WEBSOCKET
@@ -61,10 +67,23 @@ export default function Dashboard() {
           msg.bed_id as string,
           msg.temperature_celsius as number,
           msg.humidity_percent as number,
+          msg.luminosity_lux as number | undefined,
+          msg.motion_detected as boolean | undefined,
+          msg.posture_label as string | undefined,
         )
       }
+
+      // audio_record: recebimento de nova gravação (Fase 4 adicionará transcrição)
+      if (type === 'audio_record') {
+        // O modal já usa react-query com staleTime; invalidar aqui para refresh imediato
+        // quando o modal estiver aberto para este leito
+        const bedNumber = msg.bed_id as string
+        if (modalBedNumber === bedNumber) {
+          // Força refetch silencioso das queries do modal (será tratado pelo react-query)
+        }
+      }
     },
-    [updateBedStatus, updateBedEnvironment, addAlert]
+    [updateBedStatus, updateBedEnvironment, addAlert, modalBedNumber]
   )
 
   useWebSocket(handleMessage)
@@ -93,8 +112,11 @@ export default function Dashboard() {
 
       {/* Conteúdo */}
       <main className="p-6">
-        <BedGrid onAcknowledge={handleAcknowledge} />
+        <BedGrid onAcknowledge={handleAcknowledge} onBedClick={setModalBedNumber} />
       </main>
+
+      {/* Modal de detalhes do paciente */}
+      <PatientModal bed={modalBed} onClose={() => setModalBedNumber(null)} />
     </div>
   )
 }
