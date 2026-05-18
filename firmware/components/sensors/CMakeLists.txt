@@ -1,0 +1,17 @@
+idf_component_register(
+    SRCS
+        "hdc1080.c"
+        "mpu6050.c"
+        "ldr.c"
+        "sensor_task.c"
+    INCLUDE_DIRS "."
+    REQUIRES
+        i2c_bus
+        esp_driver_i2c
+        esp_adc
+        log
+        freertos
+        http_client
+        core
+        events
+)

@@ -24,13 +24,14 @@ typedef enum {
 } ui_screen_id_t;
 
 typedef struct {
-    float   temperature;
-    float   humidity;
-    float   luminosity;
-    bool    wifi_ok;
-    bool    mqtt_ok;
-    char    patient_name[32];
-    char    device_id[16];
+    float    temperature;
+    float    humidity;
+    float    lux;
+    bool     wifi_ok;
+    bool     mqtt_connected;
+    uint32_t pending_events;
+    char     patient_name[32];
+    char     device_id[16];
 } ui_operational_data_t;
 
 /** @brief Define a tela ativa (thread-safe). */

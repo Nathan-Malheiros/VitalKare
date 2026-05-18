@@ -16,9 +16,9 @@
  * REDE Wi-Fi LOCAL
  * ========================================================= */
 /** SSID da rede Wi-Fi onde o dashboard e as placas operam */
-#define DEVICE_WIFI_SSID        "SUA_REDE_WIFI"
+#define DEVICE_WIFI_SSID        "ITSelf"
 /** Senha da rede Wi-Fi */
-#define DEVICE_WIFI_PASS        "SUA_SENHA_WIFI"
+#define DEVICE_WIFI_PASS        "code2020"
 
 /* =========================================================
  * BROKER MQTT (IP do notebook/servidor na LAN)

@@ -12,14 +12,17 @@
  */
 
 #include "hdc1080.h"
-#include "driver/i2c.h"
+#include "driver/i2c_master.h"
+#include "i2c_bus.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "../../config/hardware_config.h"
 #include <math.h>
 
 static const char *TAG = "HDC1080";
+
+/* Endereço I2C */
+#define HDC1080_I2C_ADDR            0x40
 
 /* Registradores */
 #define HDC1080_REG_TEMPERATURE     0x00
@@ -30,34 +33,19 @@ static const char *TAG = "HDC1080";
 #define HDC1080_CONVERSION_DELAY_MS 20
 
 static bool s_initialized = false;
+static i2c_master_dev_handle_t s_dev_handle = NULL;
 
 /* =========================================================
- * HELPERS I2C
+ * HELPERS I2C (novo driver)
  * ========================================================= */
 static esp_err_t i2c_write_byte(uint8_t reg)
 {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (HW_HDC1080_I2C_ADDR << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, reg, true);
-    i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(HW_HDC1080_I2C_PORT, cmd,
-                                          pdMS_TO_TICKS(100));
-    i2c_cmd_link_delete(cmd);
-    return ret;
+    return i2c_master_transmit(s_dev_handle, &reg, 1, pdMS_TO_TICKS(100));
 }
 
 static esp_err_t i2c_read_bytes(uint8_t *buf, size_t len)
 {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (HW_HDC1080_I2C_ADDR << 1) | I2C_MASTER_READ, true);
-    i2c_master_read(cmd, buf, len, I2C_MASTER_LAST_NACK);
-    i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(HW_HDC1080_I2C_PORT, cmd,
-                                          pdMS_TO_TICKS(100));
-    i2c_cmd_link_delete(cmd);
-    return ret;
+    return i2c_master_receive(s_dev_handle, buf, len, pdMS_TO_TICKS(100));
 }
 
 /* =========================================================
@@ -65,30 +53,27 @@ static esp_err_t i2c_read_bytes(uint8_t *buf, size_t len)
  * ========================================================= */
 esp_err_t hdc1080_init(void)
 {
-    /* Configura I2C master (compartilhado — apenas se não inicializado) */
-    i2c_config_t conf = {
-        .mode             = I2C_MODE_MASTER,
-        .sda_io_num       = HW_OLED_SDA_GPIO,
-        .scl_io_num       = HW_OLED_SCL_GPIO,
-        .sda_pullup_en    = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en    = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = HW_HDC1080_I2C_FREQ_HZ,
-    };
+    if (s_initialized) return ESP_OK;
 
-    esp_err_t ret = i2c_param_config(HW_HDC1080_I2C_PORT, &conf);
+    /* Inicializa barramento compartilhado (idempotente) */
+    esp_err_t ret = i2c_bus_init();
     if (ret != ESP_OK) return ret;
 
-    ret = i2c_driver_install(HW_HDC1080_I2C_PORT, I2C_MODE_MASTER, 0, 0, 0);
-    if (ret != ESP_OK && ret != ESP_ERR_INVALID_STATE) {
-        /* ESP_ERR_INVALID_STATE → driver já instalado, OK */
+    /* Adiciona dispositivo HDC1080 no barramento */
+    i2c_device_config_t dev_cfg = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+        .device_address  = HDC1080_I2C_ADDR,
+        .scl_speed_hz    = 100000,   /* 100 kHz — limite do HDC1080 */
+    };
+
+    ret = i2c_master_bus_add_device(i2c_bus_get_handle(), &dev_cfg, &s_dev_handle);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "i2c_master_bus_add_device: %s", esp_err_to_name(ret));
         return ret;
     }
 
-    /* Verifica ID do fabricante */
-    /* TODO: Implementar leitura do registrador 0xFE para validação */
-
     s_initialized = true;
-    ESP_LOGI(TAG, "HDC1080 inicializado (I2C addr=0x%02X)", HW_HDC1080_I2C_ADDR);
+    ESP_LOGI(TAG, "HDC1080 inicializado (I2C addr=0x%02X)", HDC1080_I2C_ADDR);
     return ESP_OK;
 }
 

@@ -7,7 +7,6 @@
 #include "vitalkare_mqtt.h"  /* interface VitalKare */
 #include "esp_log.h"
 #include "esp_timer.h"
-#include "cJSON.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "../../config/app_config.h"
@@ -271,7 +270,7 @@ esp_err_t vitalkare_mqtt_publish_camera(const camera_frame_t *frame)
     if (!frame || !frame->data || frame->size_bytes == 0) return ESP_ERR_INVALID_ARG;
     const device_info_t *dev = core_get_device_info();
     char topic[MQTT_MAX_TOPIC_LEN];
-    snprintf(topic, sizeof(topic), MQTT_TOPIC_CAMERA,
+    snprintf(topic, sizeof(topic), MQTT_TOPIC_IMAGE,
              dev->ward_id, dev->device_id);
     int ret = vitalkare_mqtt_publish(topic, frame->data, (int)frame->size_bytes,
                                      MQTT_QOS_STATUS, false);

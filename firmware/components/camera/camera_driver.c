@@ -12,11 +12,11 @@
 #include "esp_camera.h"
 #include "esp_log.h"
 #include "esp_heap_caps.h"
+#include "vitalkare_http.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "../../config/hardware_config.h"
 #include "../../config/app_config.h"
-#include "../mqtt/vitalkare_mqtt.h"
 
 static const char *TAG = "CAMERA";
 
@@ -28,6 +28,12 @@ static bool s_initialized = false;
 esp_err_t camera_driver_init(void)
 {
     if (s_initialized) return ESP_OK;
+
+    /* Nota: não criamos o barramento I2C manualmente aqui.
+     * O componente esp32-camera gerencia o SCCB internamente via pin_sccb_sda/scl.
+     * Criar i2c_new_master_bus() antes causaria "I2C bus id already acquired".
+     */
+    esp_err_t ret;
 
     camera_config_t cfg = {
         .pin_pwdn    = -1,
@@ -61,9 +67,9 @@ esp_err_t camera_driver_init(void)
         .grab_mode    = CAMERA_GRAB_WHEN_EMPTY,
     };
 
-    esp_err_t ret = esp_camera_init(&cfg);
+    ret = esp_camera_init(&cfg);
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "esp_camera_init: %s", esp_err_to_name(ret));
+        ESP_LOGW(TAG, "esp_camera_init: %s", esp_err_to_name(ret));
         return ret;
     }
 
@@ -136,7 +142,14 @@ void task_camera_stream(void *arg)
         camera_frame_t frame = {0};
         esp_err_t ret = camera_capture_jpeg(&frame);
         if (ret == ESP_OK) {
-            vitalkare_mqtt_publish_camera(&frame);
+            /* Serializa frame JPEG como binário via HTTP */
+            char endpoint[96];
+            snprintf(endpoint, sizeof(endpoint),
+                     "/api/v1/devices/%s/image", APP_DEFAULT_DEVICE_ID);
+            vitalkare_http_post_binary(endpoint,
+                                       frame.data,
+                                       frame.size_bytes,
+                                       "image/jpeg");
             camera_frame_free(&frame);
         } else {
             ESP_LOGW(TAG, "Captura falhou: %s", esp_err_to_name(ret));

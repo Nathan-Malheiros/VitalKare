@@ -14,8 +14,12 @@
 #include <stdbool.h>
 
 typedef struct {
-    uint8_t *jpeg_buf;
-    uint32_t jpeg_len;
+    void    *fb;            /**< Ponteiro opaco para camera_fb_t (esp32-camera) */
+    uint8_t *data;          /**< Dados do frame (JPEG) */
+    size_t   size_bytes;    /**< Tamanho dos dados */
+    uint32_t width;         /**< Largura em pixels */
+    uint32_t height;        /**< Altura em pixels */
+    bool     is_jpeg;       /**< true se o frame está em formato JPEG */
 } camera_frame_t;
 
 esp_err_t     camera_driver_init(void);

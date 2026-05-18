@@ -6,7 +6,8 @@
  */
 
 #include "oled_driver.h"
-#include "driver/i2c.h"
+#include "driver/i2c_master.h"
+#include "i2c_bus.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -76,35 +77,29 @@ static const uint8_t FONT5X7[][5] = {
  * CONTEXTO GLOBAL (apenas uma instância)
  * ========================================================= */
 static oled_ctx_t *s_ctx = NULL;
+static i2c_master_dev_handle_t s_dev_handle = NULL;
+
+/* Endereço I2C do SSD1306 */
+#define SSD1306_I2C_ADDR    0x3C
 
 /* =========================================================
- * HELPERS I2C PARA SSD1306
+ * HELPERS I2C PARA SSD1306 (novo driver)
  * ========================================================= */
 static esp_err_t ssd1306_cmd(uint8_t cmd)
 {
     uint8_t buf[2] = {0x00, cmd};  /* Co=0, D/C=0 → command */
-    i2c_cmd_handle_t h = i2c_cmd_link_create();
-    i2c_master_start(h);
-    i2c_master_write_byte(h, (HW_OLED_I2C_ADDR << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write(h, buf, 2, true);
-    i2c_master_stop(h);
-    esp_err_t ret = i2c_master_cmd_begin(HW_OLED_I2C_PORT, h, pdMS_TO_TICKS(100));
-    i2c_cmd_link_delete(h);
-    return ret;
+    return i2c_master_transmit(s_dev_handle, buf, 2, pdMS_TO_TICKS(100));
 }
 
 /* Envia um bloco de dados do display GRAM */
 static esp_err_t ssd1306_data(const uint8_t *data, size_t len)
 {
-    i2c_cmd_handle_t h = i2c_cmd_link_create();
-    i2c_master_start(h);
-    i2c_master_write_byte(h, (HW_OLED_I2C_ADDR << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(h, 0x40, true);  /* Co=0, D/C=1 → data */
-    i2c_master_write(h, (uint8_t *)data, len, true);
-    i2c_master_stop(h);
-    esp_err_t ret = i2c_master_cmd_begin(HW_OLED_I2C_PORT, h, pdMS_TO_TICKS(200));
-    i2c_cmd_link_delete(h);
-    return ret;
+    /* Prepend control byte 0x40 (Co=0, D/C=1 → data) */
+    uint8_t buf[33];  /* max chunk = 32 bytes + 1 control */
+    if (len > 32) len = 32;
+    buf[0] = 0x40;
+    memcpy(buf + 1, data, len);
+    return i2c_master_transmit(s_dev_handle, buf, len + 1, pdMS_TO_TICKS(200));
 }
 
 /* =========================================================
@@ -117,19 +112,22 @@ esp_err_t oled_init(oled_ctx_t *ctx)
     memset(ctx->buffer, 0, sizeof(ctx->buffer));
     ctx->needs_flush = false;
 
-    /* I2C master */
-    i2c_config_t conf = {
-        .mode             = I2C_MODE_MASTER,
-        .sda_io_num       = HW_OLED_SDA_GPIO,
-        .scl_io_num       = HW_OLED_SCL_GPIO,
-        .sda_pullup_en    = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en    = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = HW_OLED_I2C_FREQ_HZ,
+    /* Inicializa barramento I2C compartilhado (idempotente) */
+    esp_err_t ret = i2c_bus_init();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "i2c_bus_init: %s", esp_err_to_name(ret));
+        return ret;
+    }
+
+    /* Registra SSD1306 no barramento */
+    i2c_device_config_t dev_cfg = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+        .device_address  = SSD1306_I2C_ADDR,
+        .scl_speed_hz    = 400000,   /* 400 kHz */
     };
-    i2c_param_config(HW_OLED_I2C_PORT, &conf);
-    esp_err_t ret = i2c_driver_install(HW_OLED_I2C_PORT, I2C_MODE_MASTER, 0, 0, 0);
-    if (ret != ESP_OK && ret != ESP_ERR_INVALID_STATE) {
-        ESP_LOGE(TAG, "i2c_driver_install: %s", esp_err_to_name(ret));
+    ret = i2c_master_bus_add_device(i2c_bus_get_handle(), &dev_cfg, &s_dev_handle);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "i2c_master_bus_add_device: %s", esp_err_to_name(ret));
         return ret;
     }
 

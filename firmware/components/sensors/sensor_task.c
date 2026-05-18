@@ -1,6 +1,6 @@
 /**
  * @file sensor_task.c
- * @brief Task de polling de sensores ambientais — 30 s, publica via MQTT
+ * @brief Task de polling de sensores ambientais — 30 s, publica via HTTP REST
  */
 
 #include "sensor_task.h"
@@ -11,8 +11,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "../../config/app_config.h"
-#include "../mqtt/vitalkare_mqtt.h"
-#include "../events/event_dispatcher.h"
+#include "vitalkare_http.h"
+#include "event_dispatcher.h"
 
 static const char *TAG = "SENSORS";
 
@@ -79,14 +79,31 @@ void task_sensor_poll(void *arg)
         ESP_LOGI(TAG, "T=%.1f°C H=%.1f%% Lux=%.0f Motion=%d Postura=%s",
                  hdc.temperature_celsius, hdc.humidity_percent, lux, motion, posture);
 
-        /* Publica via MQTT (se conectado) */
-        vitalkare_mqtt_publish_environment(
-            hdc.temperature_celsius,
-            hdc.humidity_percent,
-            lux,
-            noise_db,
-            motion,
-            posture);
+        /* Monta payload JSON e publica via HTTP REST */
+        char json[256];
+        snprintf(json, sizeof(json),
+                 "{\"device_id\":\"%s\",\"ward_id\":\"%s\","
+                 "\"patient_id\":\"%s\",\"firmware_version\":\"%s\","
+                 "\"timestamp_ms\":%lu,"
+                 "\"temperature_c\":%.2f,\"humidity_pct\":%.2f,"
+                 "\"lux\":%.1f,\"noise_db\":%.1f,\"motion\":%s,"
+                 "\"posture\":\"%s\"}",
+                 APP_DEFAULT_DEVICE_ID, APP_DEFAULT_WARD_ID,
+                 APP_DEFAULT_PATIENT_ID, APP_FIRMWARE_VERSION,
+                 (unsigned long)(xTaskGetTickCount() * portTICK_PERIOD_MS),
+                 hdc.temperature_celsius, hdc.humidity_percent,
+                 lux, noise_db,
+                 motion ? "true" : "false",
+                 posture);
+
+        char endpoint[96];
+        snprintf(endpoint, sizeof(endpoint),
+                 "/api/v1/devices/%s/environment", APP_DEFAULT_DEVICE_ID);
+
+        esp_err_t http_ret = vitalkare_http_post(endpoint, json);
+        if (http_ret != ESP_OK) {
+            ESP_LOGW(TAG, "HTTP POST environment falhou: %s", esp_err_to_name(http_ret));
+        }
 
         /* Posta evento para outros subsistemas */
         system_event_t evt = {

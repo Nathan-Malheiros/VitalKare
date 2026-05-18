@@ -15,7 +15,7 @@
 #include <stdbool.h>
 
 typedef enum {
-    WDT_TASK_MQTT = 0,
+    WDT_TASK_NETWORK = 0,   /**< Wi-Fi / HTTP network manager */
     WDT_TASK_EVENTS,
     WDT_TASK_BUTTONS,
     WDT_TASK_SENSORS,

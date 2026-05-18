@@ -16,25 +16,11 @@
 #include <stdint.h>
 #include <stddef.h>
 
-/* Tipos de recording/frame declarados aqui para desacoplar headers */
-typedef struct {
-    void    *data;
-    size_t   size_bytes;
-    uint32_t sample_rate;
-    uint8_t  bit_width;
-    uint8_t  channels;
-} audio_recording_t;
+/* Tipos de recording/frame definidos nos seus respectivos componentes */
+#include "../audio/audio_capture.h"
+#include "../camera/camera_driver.h"
 
-typedef struct {
-    void    *fb;          /**< Opaque pointer to camera_fb_t */
-    uint8_t *data;
-    size_t   size_bytes;
-    uint32_t width;
-    uint32_t height;
-    bool     is_jpeg;
-} camera_frame_t;
-
-/** @brief Callback para mensagens recebidas (tópicos cmd/*). */
+/** @brief Callback para mensagens recebidas (tópicos cmd/X). */
 typedef void (*mqtt_msg_cb_t)(const char *topic, const uint8_t *data, int data_len);
 
 /** @brief Inicializa e conecta o cliente MQTT. */
@@ -62,7 +48,8 @@ esp_err_t vitalkare_mqtt_publish_emergency(const char *trigger);
 /** @brief Publica leituras ambientais. */
 esp_err_t vitalkare_mqtt_publish_environment(float temp_c, float humidity_pct,
                                               float lux, float noise_db,
-                                              bool motion);
+                                              bool motion,
+                                              const char *posture_label);
 
 /** @brief Publica frame de áudio (base64 encoded). */
 esp_err_t vitalkare_mqtt_publish_audio(const audio_recording_t *rec);

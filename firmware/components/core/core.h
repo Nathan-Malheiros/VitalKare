@@ -20,7 +20,7 @@
 typedef enum {
     SYS_STATE_BOOT = 0,
     SYS_STATE_WIFI_CONNECTING,
-    SYS_STATE_MQTT_CONNECTING,
+    SYS_STATE_HTTP_READY,
     SYS_STATE_OPERATIONAL,
     SYS_STATE_EMERGENCY,
     SYS_STATE_RECORDING,
@@ -33,10 +33,10 @@ typedef enum {
  * ========================================================= */
 typedef struct {
     bool wifi_connected;
-    bool mqtt_connected;
+    bool http_ready;
     int8_t wifi_rssi;
     uint32_t reconnect_attempts;
-    uint32_t last_mqtt_connect_ms;
+    uint32_t last_http_connect_ms;
 } connectivity_status_t;
 
 /* =========================================================

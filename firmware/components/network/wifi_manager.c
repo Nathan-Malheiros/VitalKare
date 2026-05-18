@@ -130,16 +130,47 @@ esp_err_t wifi_manager_init(void)
         nvs_close(nvs);
     }
 
+
     if (strlen(ssid) == 0) {
         /* Fallback para credenciais compiladas em device_config.h */
         if (DEVICE_WIFI_SSID[0] != '\0') {
-            ESP_LOGW(TAG, "NVS vazia — usando credenciais de device_config.h (%s)",
-                     DEVICE_WIFI_SSID);
+            ESP_LOGW(TAG, "NVS vazia — usando credenciais de device_config.h (%s)", DEVICE_WIFI_SSID);
             strncpy(ssid, DEVICE_WIFI_SSID, sizeof(ssid) - 1);
             strncpy(pass, DEVICE_WIFI_PASS, sizeof(pass) - 1);
         } else {
-            ESP_LOGE(TAG, "Nenhuma credencial Wi-Fi disponível. Configure NVS ou device_config.h.");
-            return ESP_ERR_NOT_FOUND;
+            // --- Modo de configuração via serial ---
+            printf("\n--- CONFIGURAÇÃO WI-FI VIA SERIAL ---\n");
+            printf("Digite o SSID: ");
+            fflush(stdout);
+            if (fgets(ssid, sizeof(ssid), stdin) == NULL) {
+                ESP_LOGE(TAG, "Erro ao ler SSID");
+                return ESP_ERR_INVALID_ARG;
+            }
+            ssid[strcspn(ssid, "\n")] = 0;
+            printf("Digite a senha: ");
+            fflush(stdout);
+            if (fgets(pass, sizeof(pass), stdin) == NULL) {
+                ESP_LOGE(TAG, "Erro ao ler senha");
+                return ESP_ERR_INVALID_ARG;
+            }
+            pass[strcspn(pass, "\n")] = 0;
+            if (strlen(ssid) == 0) {
+                ESP_LOGE(TAG, "SSID inválido");
+                return ESP_ERR_INVALID_ARG;
+            }
+            // Salva na NVS
+            nvs_handle_t nvs;
+            if (nvs_open("wifi_cfg", NVS_READWRITE, &nvs) == ESP_OK) {
+                nvs_set_str(nvs, "ssid", ssid);
+                nvs_set_str(nvs, "pass", pass);
+                nvs_commit(nvs);
+                nvs_close(nvs);
+                printf("\nCredenciais salvas! Reinicie o dispositivo para conectar ao Wi-Fi.\n");
+            } else {
+                ESP_LOGE(TAG, "Falha ao abrir NVS para escrita");
+                return ESP_FAIL;
+            }
+            return ESP_ERR_NOT_FOUND; // Não tenta conectar agora, pede reboot
         }
     }
 

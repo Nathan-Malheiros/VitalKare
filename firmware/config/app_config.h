@@ -29,7 +29,8 @@
  * TASKS FREERTOS — PRIORIDADES E STACKS
  * ========================================================= */
 #define TASK_PRIO_WATCHDOG          6
-#define TASK_PRIO_MQTT              5
+#define TASK_PRIO_NETWORK           5   /**< Wi-Fi manager task priority */
+#define TASK_PRIO_MQTT              5   /**< Kept for backward compat */
 #define TASK_PRIO_EVENTS            5
 #define TASK_PRIO_BUTTONS           4
 #define TASK_PRIO_AUDIO             4
@@ -38,8 +39,9 @@
 #define TASK_PRIO_DISPLAY           2
 #define TASK_PRIO_STORAGE           1
 
-#define TASK_STACK_WATCHDOG         2048
-#define TASK_STACK_MQTT             8192
+#define TASK_STACK_WATCHDOG         4096
+#define TASK_STACK_NETWORK          8192   /**< Wi-Fi manager task stack */
+#define TASK_STACK_MQTT             8192   /**< Kept for backward compat */
 #define TASK_STACK_EVENTS           4096
 #define TASK_STACK_BUTTONS          2048
 #define TASK_STACK_AUDIO            16384
@@ -67,12 +69,24 @@
 #define APP_AUDIO_MAX_DURATION_S        10      /**< Duração máxima de gravação */
 #define APP_AUDIO_RECORD_MS             (APP_AUDIO_MAX_DURATION_S * 1000)
 #define APP_AUDIO_BUFFER_SIZE_BYTES     (HW_MIC_SAMPLE_RATE_HZ * APP_AUDIO_MAX_DURATION_S * 2)
+#ifndef AUDIO_BUFFER_BYTES
 #define AUDIO_BUFFER_BYTES              APP_AUDIO_BUFFER_SIZE_BYTES
+#endif
 
 /* =========================================================
  * CÂMERA
  * ========================================================= */
 #define APP_CAMERA_FRAME_INTERVAL_MS    2000    /**< Captura frame a cada 2 s no modo contínuo */
+
+/* =========================================================
+ * REDE — HTTP REST
+ * ========================================================= */
+/**
+ * @note Em produção substituir pelo IP/hostname do servidor backend.
+ * Pode ser sobrescrito por NVS.
+ */
+#define APP_HTTP_BASE_URL           "http://192.168.1.100:8000"
+#define APP_HTTP_CONNECT_TIMEOUT_MS APP_WIFI_CONNECT_TIMEOUT_MS
 
 /* =========================================================
  * ARMAZENAMENTO LOCAL

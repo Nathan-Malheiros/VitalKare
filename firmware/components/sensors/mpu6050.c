@@ -7,15 +7,18 @@
  */
 
 #include "mpu6050.h"
-#include "driver/i2c.h"
+#include "driver/i2c_master.h"
+#include "i2c_bus.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "../../config/hardware_config.h"
 #include <math.h>
 #include <string.h>
 
 static const char *TAG = "MPU6050";
+
+/* Endereço I2C */
+#define MPU6050_I2C_ADDR     0x68    /* AD0 = GND */
 
 /* Registradores */
 #define MPU_REG_PWR_MGMT_1   0x6B
@@ -25,7 +28,8 @@ static const char *TAG = "MPU6050";
 #define MPU_REG_TEMP_OUT_H   0x41
 #define MPU_REG_GYRO_XOUT_H  0x43
 #define MPU_REG_WHO_AM_I     0x75
-#define MPU_WHO_AM_I_VAL     0x68
+#define MPU_WHO_AM_I_VAL     0x68  /* MPU-6050 */
+#define MPU_WHO_AM_I_6500    0x70  /* MPU-6500 (drop-in compatible) */
 
 /* Escala padrão: ±2g (accel), ±250 °/s (gyro) */
 #define ACCEL_SCALE_2G       16384.0f
@@ -36,37 +40,23 @@ static const char *TAG = "MPU6050";
 
 static bool s_initialized = false;
 static float s_accel_offset[3] = {0.0f, 0.0f, 0.0f};
+static i2c_master_dev_handle_t s_dev_handle = NULL;
 
 /* =========================================================
- * HELPERS I2C
+ * HELPERS I2C (novo driver)
  * ========================================================= */
 static esp_err_t mpu_write_reg(uint8_t reg, uint8_t val)
 {
     uint8_t buf[2] = {reg, val};
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (HW_MPU6050_I2C_ADDR << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write(cmd, buf, 2, true);
-    i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(HW_MPU6050_I2C_PORT, cmd, pdMS_TO_TICKS(100));
-    i2c_cmd_link_delete(cmd);
-    return ret;
+    return i2c_master_transmit(s_dev_handle, buf, 2, pdMS_TO_TICKS(100));
 }
 
 static esp_err_t mpu_read_regs(uint8_t start_reg, uint8_t *buf, size_t len)
 {
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (HW_MPU6050_I2C_ADDR << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, start_reg, true);
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (HW_MPU6050_I2C_ADDR << 1) | I2C_MASTER_READ, true);
-    if (len > 1) i2c_master_read(cmd, buf, len - 1, I2C_MASTER_ACK);
-    i2c_master_read_byte(cmd, buf + len - 1, I2C_MASTER_NACK);
-    i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(HW_MPU6050_I2C_PORT, cmd, pdMS_TO_TICKS(100));
-    i2c_cmd_link_delete(cmd);
-    return ret;
+    return i2c_master_transmit_receive(s_dev_handle,
+                                       &start_reg, 1,
+                                       buf, len,
+                                       pdMS_TO_TICKS(100));
 }
 
 /* =========================================================
@@ -76,41 +66,56 @@ esp_err_t mpu6050_init(void)
 {
     if (s_initialized) return ESP_OK;
 
-    /* I2C — reutiliza bus já configurado */
-    i2c_config_t conf = {
-        .mode             = I2C_MODE_MASTER,
-        .sda_io_num       = HW_OLED_SDA_GPIO,
-        .scl_io_num       = HW_OLED_SCL_GPIO,
-        .sda_pullup_en    = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en    = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = HW_MPU6050_I2C_FREQ_HZ,
+    /* Inicializa barramento compartilhado (idempotente) */
+    esp_err_t ret = i2c_bus_init();
+    if (ret != ESP_OK) return ret;
+
+    /* Adiciona dispositivo MPU6050 no barramento */
+    i2c_device_config_t dev_cfg = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+        .device_address  = MPU6050_I2C_ADDR,
+        .scl_speed_hz    = 400000,   /* 400 kHz */
     };
-    i2c_param_config(HW_MPU6050_I2C_PORT, &conf);
-    esp_err_t ret = i2c_driver_install(HW_MPU6050_I2C_PORT, I2C_MODE_MASTER, 0, 0, 0);
-    if (ret != ESP_OK && ret != ESP_ERR_INVALID_STATE) {
-        ESP_LOGE(TAG, "i2c_driver_install: %s", esp_err_to_name(ret));
+
+    ret = i2c_master_bus_add_device(i2c_bus_get_handle(), &dev_cfg, &s_dev_handle);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "i2c_master_bus_add_device: %s", esp_err_to_name(ret));
         return ret;
     }
 
     /* Verifica WHO_AM_I */
     uint8_t who_am_i = 0;
     ret = mpu_read_regs(MPU_REG_WHO_AM_I, &who_am_i, 1);
-    if (ret != ESP_OK || who_am_i != MPU_WHO_AM_I_VAL) {
-        ESP_LOGW(TAG, "MPU6050 não detectado (WHO_AM_I=0x%02X, esperado=0x%02X)",
-                 who_am_i, MPU_WHO_AM_I_VAL);
+    if (ret != ESP_OK ||
+        (who_am_i != MPU_WHO_AM_I_VAL && who_am_i != MPU_WHO_AM_I_6500)) {
+        ESP_LOGW(TAG, "MPU6050/6500 não detectado (WHO_AM_I=0x%02X)", who_am_i);
         return (ret == ESP_OK) ? ESP_ERR_NOT_FOUND : ret;
     }
+    ESP_LOGI(TAG, "IMU detectado: WHO_AM_I=0x%02X (%s)",
+             who_am_i, (who_am_i == MPU_WHO_AM_I_6500) ? "MPU-6500" : "MPU-6050");
 
     /* Acorda o sensor (limpa sleep bit) */
-    ESP_ERROR_CHECK(mpu_write_reg(MPU_REG_PWR_MGMT_1, 0x00));
+    ret = mpu_write_reg(MPU_REG_PWR_MGMT_1, 0x00);
+    if (ret != ESP_OK) {
+        ESP_LOGW(TAG, "PWR_MGMT_1 write falhou: %s", esp_err_to_name(ret));
+        return ret;
+    }
     vTaskDelay(pdMS_TO_TICKS(10));
 
     /* Configura gyro ±250 °/s e accel ±2g */
-    ESP_ERROR_CHECK(mpu_write_reg(MPU_REG_GYRO_CONFIG,  0x00));
-    ESP_ERROR_CHECK(mpu_write_reg(MPU_REG_ACCEL_CONFIG, 0x00));
+    ret = mpu_write_reg(MPU_REG_GYRO_CONFIG, 0x00);
+    if (ret != ESP_OK) {
+        ESP_LOGW(TAG, "GYRO_CONFIG write falhou: %s", esp_err_to_name(ret));
+        return ret;
+    }
+    ret = mpu_write_reg(MPU_REG_ACCEL_CONFIG, 0x00);
+    if (ret != ESP_OK) {
+        ESP_LOGW(TAG, "ACCEL_CONFIG write falhou: %s", esp_err_to_name(ret));
+        return ret;
+    }
 
     s_initialized = true;
-    ESP_LOGI(TAG, "MPU6050 inicializado (addr=0x%02X)", HW_MPU6050_I2C_ADDR);
+    ESP_LOGI(TAG, "MPU6050 inicializado (addr=0x%02X)", MPU6050_I2C_ADDR);
     return ESP_OK;
 }
 

@@ -17,7 +17,7 @@
 #include "freertos/semphr.h"
 #include "../../config/hardware_config.h"
 #include "../../config/app_config.h"
-#include "../mqtt/vitalkare_mqtt.h"
+#include "vitalkare_http.h"
 #include <string.h>
 
 static const char *TAG = "AUDIO";
@@ -148,9 +148,15 @@ void task_audio_capture(void *arg)
         audio_capture_stop(&rec);
 
         if (rec.data && rec.size_bytes > 0) {
-            ESP_LOGI(TAG, "Gravados %zu bytes — publicando via MQTT",
+            ESP_LOGI(TAG, "Gravados %zu bytes — enviando via HTTP",
                      rec.size_bytes);
-            vitalkare_mqtt_publish_audio(&rec);
+            char endpoint[96];
+            snprintf(endpoint, sizeof(endpoint),
+                     "/api/v1/devices/%s/audio", APP_DEFAULT_DEVICE_ID);
+            vitalkare_http_post_binary(endpoint,
+                                       (const uint8_t *)rec.data,
+                                       rec.size_bytes,
+                                       "audio/pcm");
         }
 
         audio_capture_free(&rec);

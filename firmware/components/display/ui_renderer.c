@@ -98,7 +98,7 @@ void ui_render(oled_ctx_t *ctx)
     /* ---- OPERATIONAL ---- */
     case UI_SCREEN_OPERATIONAL:
         /* Linha 0: Leito + status MQTT */
-        snprintf(buf, sizeof(buf), "%s  MQTT:%s",
+        snprintf(buf, sizeof(buf), "%.12s  MQTT:%s",
                  op.device_id[0] ? op.device_id : "---",
                  op.mqtt_connected ? "OK" : "--");
         oled_draw_string(ctx, 0, 0, buf);

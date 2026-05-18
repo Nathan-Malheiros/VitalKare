@@ -46,9 +46,9 @@ typedef enum {
     /* Rede */
     EVT_WIFI_CONNECTED,
     EVT_WIFI_DISCONNECTED,
-    EVT_MQTT_CONNECTED,
-    EVT_MQTT_DISCONNECTED,
-    EVT_MQTT_CMD_RECEIVED,      /**< Comando recebido do backend via MQTT */
+    EVT_HTTP_CONNECTED,
+    EVT_HTTP_DISCONNECTED,
+    EVT_HTTP_CMD_RECEIVED,      /**< Comando recebido do backend via HTTP */
 
     /* Sistema */
     EVT_SYSTEM_HEARTBEAT,       /**< Timer de heartbeat disparou */

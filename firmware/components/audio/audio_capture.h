@@ -17,14 +17,17 @@
 #define AUDIO_SAMPLE_RATE_HZ    16000
 #define AUDIO_BITS              16
 #define AUDIO_CHANNELS          1
+#ifndef AUDIO_BUFFER_BYTES
 #define AUDIO_BUFFER_BYTES      (AUDIO_SAMPLE_RATE_HZ * AUDIO_MAX_DURATION_S * \
                                  (AUDIO_BITS / 8) * AUDIO_CHANNELS)
+#endif
 
 typedef struct {
-    uint8_t *buffer;        /**< Buffer alocado em heap */
-    uint32_t size_bytes;    /**< Bytes gravados */
-    uint32_t duration_ms;   /**< Duração real da gravação */
-    bool     valid;
+    void    *data;          /**< Buffer alocado em heap (malloc/PSRAM) */
+    size_t   size_bytes;    /**< Bytes gravados */
+    uint32_t sample_rate;   /**< Taxa de amostragem em Hz */
+    uint8_t  bit_width;     /**< Bits por amostra (ex: 16) */
+    uint8_t  channels;      /**< Número de canais (1=mono, 2=stereo) */
 } audio_recording_t;
 
 /** @brief Inicializa driver I2S PDM. */

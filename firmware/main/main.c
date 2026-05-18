@@ -6,7 +6,7 @@
  *   1. Inicialização de hardware periférico
  *   2. Inicialização das camadas de software (core, events)
  *   3. Criação de todas as tasks FreeRTOS
- *   4. Inicialização da pilha de rede (Wi-Fi → MQTT)
+ *   4. Inicialização da pilha de rede (Wi-Fi → HTTP REST)
  *
  * IMPORTANTE: Nenhuma lógica de aplicação deve estar neste arquivo.
  * main.c é apenas o orquestrador de inicialização.
@@ -28,36 +28,34 @@
 /* Configurações */
 #include "config/app_config.h"
 #include "config/hardware_config.h"
-#include "config/mqtt_config.h"
 
 /* Componentes */
-#include "components/core/core.h"
-#include "components/events/event_dispatcher.h"
-#include "components/network/wifi_manager.h"
-#include "components/mqtt/vitalkare_mqtt.h"
-#include "components/buttons/button_handler.h"
-#include "components/sensors/hdc1080.h"
-#include "components/sensors/mpu6050.h"
-#include "components/sensors/ldr.h"
-#include "components/sensors/sensor_task.h"
-#include "components/display/oled_driver.h"
-#include "components/display/ui_renderer.h"
-#include "components/storage/sd_manager.h"
-#include "components/storage/log_writer.h"
-#include "components/storage/offline_cache.h"
-#include "components/audio/audio_capture.h"
-#include "components/camera/camera_driver.h"
-#include "components/watchdog/watchdog.h"
+#include "core/core.h"
+#include "events/event_dispatcher.h"
+#include "network/wifi_manager.h"
+#include "http_client/vitalkare_http.h"
+#include "buttons/button_handler.h"
+#include "sensors/hdc1080.h"
+#include "sensors/mpu6050.h"
+#include "sensors/ldr.h"
+#include "sensors/sensor_task.h"
+#include "display/oled_driver.h"
+#include "display/ui_renderer.h"
+#include "storage/sd_manager.h"
+#include "storage/log_writer.h"
+#include "storage/offline_cache.h"
+#include "audio/audio_capture.h"
+#include "camera/camera_driver.h"
+#include "watchdog/watchdog.h"
 
 static const char *TAG = "MAIN";
 
 /* =========================================================
- * HANDLER MQTT → EVENT DISPATCHER
- * Roteia comandos recebidos do backend para eventos internos
+ * HANDLER DE COMANDOS HTTP (poll de comandos pendentes do backend)
  * ========================================================= */
-static void on_mqtt_command(const char *topic, const uint8_t *data, int data_len)
+static void process_http_command(const char *cmd_type)
 {
-    ESP_LOGI(TAG, "Comando MQTT recebido: %s", topic);
+    ESP_LOGI(TAG, "Comando HTTP recebido: %s", cmd_type);
 
     system_event_t evt = {
         .timestamp_ms = xTaskGetTickCount() * portTICK_PERIOD_MS,
@@ -65,20 +63,13 @@ static void on_mqtt_command(const char *topic, const uint8_t *data, int data_len
         .extra_ptr    = NULL,
     };
 
-    if (strstr(topic, "/cmd/camera")) {
+    if (strstr(cmd_type, "camera")) {
         evt.type = EVT_CAMERA_CAPTURE_REQ;
-    } else if (strstr(topic, "/cmd/ack")) {
+    } else if (strstr(cmd_type, "ack")) {
         evt.type = EVT_ACK_RECEIVED;
-    } else if (strstr(topic, "/cmd/buzzer")) {
-        evt.type = EVT_MQTT_CMD_RECEIVED;
     } else {
-        evt.type = EVT_MQTT_CMD_RECEIVED;
+        evt.type = EVT_HTTP_CMD_RECEIVED;
     }
-
-    /* Copia até 128 bytes do payload inline */
-    evt.data_len = (uint16_t)(data_len < (int)sizeof(evt.data)
-                              ? data_len : sizeof(evt.data));
-    memcpy(evt.data, data, evt.data_len);
 
     event_post(&evt, false);
 }
@@ -93,12 +84,29 @@ static void on_emergency_event(const system_event_t *evt)
     core_set_state(SYS_STATE_EMERGENCY);
     ui_set_screen(UI_SCREEN_EMERGENCY);
 
-    /* Publica via MQTT (QoS 2) */
-    vitalkare_mqtt_publish_emergency("BUTTON_B");
+    /* Publica via HTTP — apenas se já conectado e HTTP inicializado */
+    sys_state_t state = core_get_state();
+    if (state == SYS_STATE_HTTP_READY || state == SYS_STATE_OPERATIONAL) {
+        char json[192];
+        snprintf(json, sizeof(json),
+                 "{\"device_id\":\"%s\",\"ward_id\":\"%s\","
+                 "\"patient_id\":\"%s\",\"firmware_version\":\"%s\","
+                 "\"timestamp_ms\":%lu,\"trigger\":\"BUTTON_B\"}",
+                 APP_DEFAULT_DEVICE_ID, APP_DEFAULT_WARD_ID,
+                 APP_DEFAULT_PATIENT_ID, APP_FIRMWARE_VERSION,
+                 (unsigned long)(xTaskGetTickCount() * portTICK_PERIOD_MS));
 
-    /* Grava log no SD */
-    log_write(LOG_LEVEL_CRITICAL, LOG_CAT_BUTTON,
-              "Botão de emergência pressionado", NULL);
+        char endpoint[96];
+        snprintf(endpoint, sizeof(endpoint),
+                 "/api/v1/devices/%s/events", APP_DEFAULT_DEVICE_ID);
+        vitalkare_http_post(endpoint, json);
+
+        /* Grava log no SD — disponível apenas com SD inicializado */
+        log_write(LOG_LEVEL_CRITICAL, LOG_CAT_BUTTON,
+                  "Botão de emergência pressionado", NULL);
+    } else {
+        ESP_LOGW(TAG, "Emergência sem conectividade — gravando em cache offline");
+    }
 }
 
 static TaskHandle_t s_audio_task_handle = NULL;
@@ -117,21 +125,9 @@ static void on_request_event(const system_event_t *evt)
 
 static void on_wifi_connected(const system_event_t *evt)
 {
-    ESP_LOGI(TAG, "Wi-Fi conectado — iniciando MQTT");
-    vitalkare_mqtt_init();
-}
-
-static void on_wifi_disconnected(const system_event_t *evt)
-{
-    ESP_LOGW(TAG, "Wi-Fi desconectado — modo offline");
-    core_set_state(SYS_STATE_OFFLINE);
-    ui_set_screen(UI_SCREEN_OFFLINE);
-}
-
-static void on_mqtt_connected(const system_event_t *evt)
-{
-    core_set_state(SYS_STATE_OPERATIONAL);
-    ui_set_screen(UI_SCREEN_OPERATIONAL);
+    ESP_LOGI(TAG, "Wi-Fi conectado — iniciando HTTP client");
+    vitalkare_http_init();
+    core_set_state(SYS_STATE_HTTP_READY);
 
     /* Sincroniza cache offline se houver eventos pendentes */
     if (offline_cache_pending_count() > 0) {
@@ -142,10 +138,14 @@ static void on_mqtt_connected(const system_event_t *evt)
         };
         event_post(&sync_evt, false);
     }
+
+    core_set_state(SYS_STATE_OPERATIONAL);
+    ui_set_screen(UI_SCREEN_OPERATIONAL);
 }
 
-static void on_mqtt_disconnected(const system_event_t *evt)
+static void on_wifi_disconnected(const system_event_t *evt)
 {
+    ESP_LOGW(TAG, "Wi-Fi desconectado — modo offline");
     core_set_state(SYS_STATE_OFFLINE);
     ui_set_screen(UI_SCREEN_OFFLINE);
 }
@@ -155,7 +155,7 @@ static void on_ack_received(const system_event_t *evt)
     ESP_LOGI(TAG, "Atendimento confirmado pelo operador");
     core_set_state(SYS_STATE_OPERATIONAL);
     ui_set_screen(UI_SCREEN_ACK_RECEIVED);
-    log_write(LOG_LEVEL_INFO, LOG_CAT_MQTT, "ACK recebido do backend", NULL);
+    log_write(LOG_LEVEL_INFO, LOG_CAT_NETWORK, "ACK recebido do backend", NULL);
 }
 
 /* =========================================================
@@ -187,9 +187,11 @@ static void init_hardware(void)
         ESP_LOGW(TAG, "SD Card não disponível — operação sem storage local");
     }
 
-    /* Display OLED */
+    /* Display OLED — periférico opcional; falha não é fatal */
     static oled_ctx_t oled_ctx;
-    ESP_ERROR_CHECK(oled_init(&oled_ctx));
+    if (oled_init(&oled_ctx) != ESP_OK) {
+        ESP_LOGW(TAG, "OLED não disponível — display desativado");
+    }
 
     /* Sensores */
     hdc1080_init();
@@ -199,10 +201,7 @@ static void init_hardware(void)
     /* Botões */
     ESP_ERROR_CHECK(button_handler_init());
 
-    /* Câmera */
-    camera_driver_init();
-
-    /* Áudio */
+    /* Áudio — apenas configura I2S, não inicia DMA */
     audio_capture_init();
 
     ESP_LOGI(TAG, "Hardware inicializado");
@@ -214,8 +213,6 @@ static void register_event_handlers(void)
     event_register_handler(EVT_BTN_REQUEST,         on_request_event);
     event_register_handler(EVT_WIFI_CONNECTED,      on_wifi_connected);
     event_register_handler(EVT_WIFI_DISCONNECTED,   on_wifi_disconnected);
-    event_register_handler(EVT_MQTT_CONNECTED,      on_mqtt_connected);
-    event_register_handler(EVT_MQTT_DISCONNECTED,   on_mqtt_disconnected);
     event_register_handler(EVT_ACK_RECEIVED,        on_ack_received);
 }
 
@@ -253,13 +250,8 @@ static void create_tasks(void)
 
     /* Wi-Fi manager */
     xTaskCreate(task_wifi_manager,
-                "wifi", TASK_STACK_MQTT,
-                NULL, TASK_PRIO_MQTT, NULL);
-
-    /* MQTT manager — criado, mas só opera após Wi-Fi conectar */
-    xTaskCreate(task_mqtt_manager,
-                "mqtt", TASK_STACK_MQTT,
-                NULL, TASK_PRIO_MQTT, NULL);
+                "wifi", TASK_STACK_NETWORK,
+                NULL, TASK_PRIO_NETWORK, NULL);
 
     /* Áudio */
     xTaskCreate(task_audio_capture, "audio", TASK_STACK_AUDIO, NULL, TASK_PRIO_AUDIO, &s_audio_task_handle);
@@ -304,14 +296,13 @@ void app_main(void)
     /* 7. Hardware periférico */
     init_hardware();
 
-    /* 8. MQTT callback */
-    vitalkare_mqtt_set_message_callback(on_mqtt_command);
-
-    /* 9. Transição para WIFI_CONNECTING */
+    /* 8. Transição para WIFI_CONNECTING */
     core_set_state(SYS_STATE_WIFI_CONNECTING);
     ui_set_screen(UI_SCREEN_CONNECTING);
 
-    /* 10. Wi-Fi */
+    /* 10. Wi-Fi — inicializa ANTES da câmera para evitar conflito de cache
+     * (esp_wifi_init → NVS read → spi_flash_op_lock suspende ICACHE+DCACHE;
+     *  câmera com DMA ativo durante esse janela causa panic_enable_cache → TG1WDT) */
     esp_err_t wifi_ret = wifi_manager_init();
     if (wifi_ret != ESP_OK) {
         ESP_LOGW(TAG, "Wi-Fi não pôde ser iniciado (%s) — modo offline",
@@ -320,7 +311,10 @@ void app_main(void)
         ui_set_screen(UI_SCREEN_OFFLINE);
     }
 
-    /* 11. Criar todas as tasks */
+    /* 11. Câmera — inicializada APÓS WiFi para evitar DMA durante cache lock */
+    camera_driver_init();
+
+    /* 12. Criar todas as tasks */
     create_tasks();
 
     /* app_main pode retornar — FreeRTOS scheduler assume o controle */

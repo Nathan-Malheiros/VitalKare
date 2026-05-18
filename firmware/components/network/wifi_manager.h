@@ -13,7 +13,7 @@
 typedef void (*wifi_state_cb_t)(bool connected, int8_t rssi);
 
 /** @brief Inicializa o Wi-Fi em modo STA e começa conexão. */
-esp_err_t wifi_manager_init(void);
+esp_err_t wifi_manager_init(void); // Agora suporta configuração serial se NVS/device_config.h estiverem vazios
 
 /** @brief Registra callback de mudança de estado. */
 void wifi_manager_set_callback(wifi_state_cb_t cb);
