@@ -29,64 +29,117 @@
  * TASKS FREERTOS — PRIORIDADES E STACKS
  * ========================================================= */
 #define TASK_PRIO_WATCHDOG          6
-#define TASK_PRIO_NETWORK           5   /**< Wi-Fi manager task priority */
-#define TASK_PRIO_MQTT              5   /**< Kept for backward compat */
+#define TASK_PRIO_NETWORK           5
+#define TASK_PRIO_TCP               5
 #define TASK_PRIO_EVENTS            5
-#define TASK_PRIO_BUTTONS           4
-#define TASK_PRIO_AUDIO             4
+#define TASK_PRIO_BUTTONS           5   /**< Elevado: resposta a ISR crítica */
+#define TASK_PRIO_AUDIO_CTRL        5   /**< Controle de gravação — tempo-real */
+#define TASK_PRIO_AUDIO_ENC         4   /**< Encoding ADPCM */
+#define TASK_PRIO_CMD_PROC          4   /**< Processa comandos recebidos */
 #define TASK_PRIO_SENSORS           3
 #define TASK_PRIO_CAMERA            3
 #define TASK_PRIO_DISPLAY           2
 #define TASK_PRIO_STORAGE           1
 
+/* Legacy aliases */
+#define TASK_PRIO_MQTT              5
+#define TASK_PRIO_AUDIO             TASK_PRIO_AUDIO_CTRL
+
 #define TASK_STACK_WATCHDOG         4096
-#define TASK_STACK_NETWORK          8192   /**< Wi-Fi manager task stack */
-#define TASK_STACK_MQTT             8192   /**< Kept for backward compat */
+#define TASK_STACK_NETWORK          8192
+#define TASK_STACK_TCP              8192
 #define TASK_STACK_EVENTS           4096
-#define TASK_STACK_BUTTONS          2048
-#define TASK_STACK_AUDIO            16384
+#define TASK_STACK_BUTTONS          3072
+#define TASK_STACK_AUDIO_CTRL       4096
+#define TASK_STACK_AUDIO_ENC        8192
+#define TASK_STACK_CMD_PROC         4096
 #define TASK_STACK_SENSORS          4096
 #define TASK_STACK_CAMERA           32768
 #define TASK_STACK_DISPLAY          4096
 #define TASK_STACK_STORAGE          4096
 
+/* Legacy aliases */
+#define TASK_STACK_MQTT             8192
+#define TASK_STACK_AUDIO            TASK_STACK_AUDIO_CTRL
+
 /* =========================================================
  * INTERVALOS E TIMEOUTS
  * ========================================================= */
-#define APP_HEARTBEAT_INTERVAL_MS       30000   /**< Publicar status a cada 30 s */
-#define APP_SENSOR_POLL_INTERVAL_MS     30000   /**< Ler sensores a cada 30 s */
-#define APP_MPU6050_POLL_INTERVAL_MS    100     /**< MPU6050 a 10 Hz */
-#define APP_DISPLAY_REFRESH_INTERVAL_MS 500     /**< OLED 2 Hz */
-#define APP_STORAGE_FLUSH_INTERVAL_MS   60000   /**< Flush logs no SD a cada 60 s */
-#define APP_WIFI_CONNECT_TIMEOUT_MS     15000   /**< Timeout de conexão Wi-Fi */
-#define APP_MQTT_CONNECT_TIMEOUT_MS     10000   /**< Timeout de conexão MQTT */
-#define APP_RECONNECT_MIN_DELAY_MS      2000    /**< Delay mínimo de reconexão */
-#define APP_RECONNECT_MAX_DELAY_MS      120000  /**< Delay máximo de reconexão (2 min) */
+#define APP_HEARTBEAT_INTERVAL_MS       30000
+#define APP_SENSOR_POLL_INTERVAL_MS     30000
+#define APP_MPU6050_POLL_INTERVAL_MS    100
+#define APP_DISPLAY_REFRESH_INTERVAL_MS 500
+#define APP_STORAGE_FLUSH_INTERVAL_MS   60000
+#define APP_WIFI_CONNECT_TIMEOUT_MS     15000
+#define APP_MQTT_CONNECT_TIMEOUT_MS     10000
+#define APP_RECONNECT_MIN_DELAY_MS      2000
+#define APP_RECONNECT_MAX_DELAY_MS      120000
 
 /* =========================================================
- * ÁUDIO
+ * ÁUDIO — NOVA ARQUITETURA DE STREAMING
  * ========================================================= */
-#define APP_AUDIO_MAX_DURATION_S        10      /**< Duração máxima de gravação */
-#define APP_AUDIO_RECORD_MS             (APP_AUDIO_MAX_DURATION_S * 1000)
-#define APP_AUDIO_BUFFER_SIZE_BYTES     (HW_MIC_SAMPLE_RATE_HZ * APP_AUDIO_MAX_DURATION_S * 2)
+#define APP_AUDIO_MAX_DURATION_MS       10000   /**< Hard limit: 10 s */
+#define APP_AUDIO_MAX_DURATION_S        10
+#define APP_AUDIO_RECORD_MS             APP_AUDIO_MAX_DURATION_MS
+
+/** Janela de debounce: ignora audio_ctrl_start() dentro deste intervalo */
+#define APP_AUDIO_DEBOUNCE_MS           150
+
+/** Tempo para recovery após erro de hardware (I2S reset) */
+#define APP_AUDIO_ERROR_RECOVERY_MS     500
+
+/** Chunk de 4096 bytes = 128 ms a 16 kHz/16-bit/mono */
+#define APP_AUDIO_CHUNK_BYTES           4096
+/** Pool de 16 chunks pré-alocados na PSRAM — zero malloc durante gravação */
+#define APP_AUDIO_CHUNK_POOL_COUNT      16
+/** Fila entre audio_ctrl e audio_encoder */
+#define APP_AUDIO_CHUNK_QUEUE_DEPTH     12
+
+/* Aliases de compatibilidade */
+#define APP_AUDIO_BUFFER_SIZE_BYTES     (16000 * 10 * 2)
 #ifndef AUDIO_BUFFER_BYTES
 #define AUDIO_BUFFER_BYTES              APP_AUDIO_BUFFER_SIZE_BYTES
 #endif
 
 /* =========================================================
- * CÂMERA
+ * TCP CLIENT — PROTOCOLO PERSISTENTE
  * ========================================================= */
-#define APP_CAMERA_FRAME_INTERVAL_MS    2000    /**< Captura frame a cada 2 s no modo contínuo */
+#define APP_TCP_SERVER_IP           "192.168.1.100"
+#define APP_TCP_SERVER_PORT         7890
+#define APP_TCP_CONNECT_TIMEOUT_MS  5000
+#define APP_TCP_RECV_TIMEOUT_MS     100         /**< recv non-blocking tick */
+#define APP_TCP_HEARTBEAT_INTERVAL_MS  15000    /**< Heartbeat a cada 15 s */
+#define APP_TCP_HEARTBEAT_MISS_MAX  3           /**< Desconecta após 3 misses */
+#define APP_TCP_RECONNECT_MIN_MS    2000
+#define APP_TCP_RECONNECT_MAX_MS    120000
+#define APP_TCP_CRITICAL_QUEUE_DEPTH  8
+#define APP_TCP_NORMAL_QUEUE_DEPTH    32
+#define APP_TCP_INCOMING_CMD_DEPTH    8
+#define APP_TCP_MAX_PACKET_PAYLOAD  8192        /**< Payload máximo por pacote */
+
+/* Protocolo Wire VK */
+#define APP_PROTOCOL_MAGIC_0        0x56        /**< 'V' */
+#define APP_PROTOCOL_MAGIC_1        0x4B        /**< 'K' */
+#define APP_PROTOCOL_VERSION        1
 
 /* =========================================================
- * REDE — HTTP REST
+ * HTTP REST (legado — usado durante migração)
  * ========================================================= */
-/**
- * @note Em produção substituir pelo IP/hostname do servidor backend.
- * Pode ser sobrescrito por NVS.
- */
 #define APP_HTTP_BASE_URL           "http://192.168.1.100:8000"
 #define APP_HTTP_CONNECT_TIMEOUT_MS APP_WIFI_CONNECT_TIMEOUT_MS
+
+/* =========================================================
+ * CÂMERA
+ * ========================================================= */
+#define APP_CAMERA_FRAME_INTERVAL_MS    2000
+
+/* =========================================================
+ * OXÍMETRO — MAX30102
+ * ========================================================= */
+#define APP_OXIMETER_SAMPLE_RATE_HZ     100     /**< 100 amostras/s */
+#define APP_OXIMETER_POLL_INTERVAL_MS   1000    /**< Atualiza BPM/SpO2 a 1 Hz */
+#define APP_OXIMETER_FINGER_THRESHOLD   50000   /**< IR mín. para detecção de dedo */
+#define APP_OXIMETER_REPORT_INTERVAL_MS 5000    /**< Envia telemetria a cada 5 s */
 
 /* =========================================================
  * ARMAZENAMENTO LOCAL
@@ -108,7 +161,7 @@
 /* =========================================================
  * WATCHDOG
  * ========================================================= */
-#define APP_WDT_TIMEOUT_MS          30000   /**< 30 s sem feed → reset */
-#define APP_TASK_HEARTBEAT_PERIOD_MS 5000   /**< Tasks devem registrar alive a cada 5 s */
+#define APP_WDT_TIMEOUT_MS              30000
+#define APP_TASK_HEARTBEAT_PERIOD_MS    5000
 
 #endif /* VITALKARE_APP_CONFIG_H */

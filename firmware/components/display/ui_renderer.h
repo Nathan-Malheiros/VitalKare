@@ -21,6 +21,7 @@ typedef enum {
     UI_SCREEN_RECORDING,
     UI_SCREEN_OFFLINE,
     UI_SCREEN_ACK_RECEIVED,
+    UI_SCREEN_DIAGNOSTICS,  /**< Página de diagnóstico em tempo real */
 } ui_screen_id_t;
 
 typedef struct {
@@ -34,11 +35,40 @@ typedef struct {
     char     device_id[16];
 } ui_operational_data_t;
 
+/**
+ * @brief Dados para a tela de diagnóstico em tempo real.
+ * Populado pelo system_manager + task_monitor + memory_monitor.
+ */
+typedef struct {
+    /* Conectividade */
+    int8_t   wifi_rssi;
+    bool     tcp_ok;
+    uint8_t  reconnect_count;   /**< últimas reconexões (saturado em 99) */
+
+    /* Memória */
+    uint32_t heap_free_kb;
+    uint32_t psram_free_kb;
+
+    /* Sistema */
+    uint32_t uptime_sec;
+    uint8_t  faulted_tasks;
+
+    /* Filas */
+    uint8_t  critical_q_pct;    /**< % de ocupação da fila crítica */
+    uint8_t  normal_q_pct;      /**< % de ocupação da fila normal */
+
+    /* Áudio */
+    uint8_t  audio_state;       /**< audio_state_t cast para uint8 */
+} ui_diagnostics_data_t;
+
 /** @brief Define a tela ativa (thread-safe). */
 void ui_set_screen(ui_screen_id_t screen);
 
 /** @brief Atualiza dados da tela operacional. */
 void ui_update_operational_data(const ui_operational_data_t *data);
+
+/** @brief Atualiza dados da tela de diagnóstico. Thread-safe. */
+void ui_update_diagnostics_data(const ui_diagnostics_data_t *data);
 
 /**
  * @brief Renderiza a tela ativa no contexto OLED e dá flush.

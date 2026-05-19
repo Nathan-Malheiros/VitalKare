@@ -13,6 +13,7 @@
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 #include "../../config/app_config.h"
+#include "../core/task_monitor.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -20,6 +21,7 @@ static const char *TAG = "UI";
 
 static ui_screen_id_t       s_screen      = UI_SCREEN_BOOT;
 static ui_operational_data_t s_op_data    = {0};
+static ui_diagnostics_data_t s_diag_data  = {0};
 static SemaphoreHandle_t    s_mutex       = NULL;
 static bool                 s_initialized = false;
 
@@ -60,6 +62,15 @@ void ui_update_operational_data(const ui_operational_data_t *data)
     }
 }
 
+void ui_update_diagnostics_data(const ui_diagnostics_data_t *data)
+{
+    if (!s_initialized || data == NULL) return;
+    if (xSemaphoreTake(s_mutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+        memcpy(&s_diag_data, data, sizeof(s_diag_data));
+        xSemaphoreGive(s_mutex);
+    }
+}
+
 /* =========================================================
  * RENDERIZAÇÃO
  * ========================================================= */
@@ -69,10 +80,12 @@ void ui_render(oled_ctx_t *ctx)
 
     ui_screen_id_t screen;
     ui_operational_data_t op;
+    ui_diagnostics_data_t diag;
 
     if (xSemaphoreTake(s_mutex, pdMS_TO_TICKS(50)) != pdTRUE) return;
     screen = s_screen;
     memcpy(&op, &s_op_data, sizeof(op));
+    memcpy(&diag, &s_diag_data, sizeof(diag));
     xSemaphoreGive(s_mutex);
 
     oled_clear(ctx);
@@ -162,6 +175,35 @@ void ui_render(oled_ctx_t *ctx)
         oled_draw_rect(  ctx,  0,  0, 128, 64);
         break;
 
+    /* ---- DIAGNOSTICS ---- */
+    case UI_SCREEN_DIAGNOSTICS:
+        /* Linha 0: Header */
+        oled_draw_string(ctx, 20, 0, "-- DIAG --");
+        oled_draw_hline( ctx,  0, 9, 128);
+        /* Linha 1: WiFi RSSI + TCP */
+        snprintf(buf, sizeof(buf), "W:%ddBm TCP:%s",
+                 diag.wifi_rssi, diag.tcp_ok ? "OK" : "--");
+        oled_draw_string(ctx, 0, 11, buf);
+        /* Linha 2: Heap + PSRAM */
+        snprintf(buf, sizeof(buf), "H:%luK P:%luK",
+                 (unsigned long)diag.heap_free_kb,
+                 (unsigned long)diag.psram_free_kb);
+        oled_draw_string(ctx, 0, 21, buf);
+        /* Linha 3: Uptime + reconexões */
+        snprintf(buf, sizeof(buf), "Up:%lus Rx:%u",
+                 (unsigned long)diag.uptime_sec,
+                 (unsigned)diag.reconnect_count);
+        oled_draw_string(ctx, 0, 31, buf);
+        /* Linha 4: Filas crítica/normal */
+        snprintf(buf, sizeof(buf), "Qc:%u%% Qn:%u%%",
+                 diag.critical_q_pct, diag.normal_q_pct);
+        oled_draw_string(ctx, 0, 41, buf);
+        /* Linha 5: Tasks faultadas + áudio state */
+        snprintf(buf, sizeof(buf), "Flt:%u Aud:%u",
+                 diag.faulted_tasks, diag.audio_state);
+        oled_draw_string(ctx, 0, 51, buf);
+        break;
+
     default:
         oled_draw_string(ctx, 0, 24, "???");
         break;
@@ -187,6 +229,7 @@ void task_display_update(void *arg)
     ui_init(ctx);
 
     for (;;) {
+        task_monitor_heartbeat(TASK_ID_DISPLAY);
         ui_render(ctx);
         vTaskDelay(pdMS_TO_TICKS(APP_DISPLAY_REFRESH_MS));
     }

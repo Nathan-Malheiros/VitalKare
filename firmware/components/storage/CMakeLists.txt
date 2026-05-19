@@ -3,6 +3,7 @@ idf_component_register(
         "sd_manager.c"
         "log_writer.c"
         "offline_cache.c"
+        "offline_journal.c"
     INCLUDE_DIRS "."
     REQUIRES
         fatfs
@@ -12,4 +13,6 @@ idf_component_register(
         esp_timer
         driver
         esp_driver_sdmmc
+        nvs_flash
+        core
 )

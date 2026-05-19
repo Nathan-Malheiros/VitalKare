@@ -1,10 +1,15 @@
 idf_component_register(
-    SRCS "audio_capture.c"
+    SRCS
+        "audio_capture.c"
+        "audio_encoder.c"
+        "adpcm.c"
     INCLUDE_DIRS "."
     REQUIRES
         esp_driver_i2s
         heap
         log
         freertos
-        http_client
+        events
+        network
+        core
 )

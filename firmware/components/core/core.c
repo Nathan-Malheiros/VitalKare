@@ -17,14 +17,17 @@ static const char *TAG = "CORE";
 static system_context_t s_ctx = {0};
 
 static const char *state_names[] = {
-    [SYS_STATE_BOOT]             = "BOOT",
-    [SYS_STATE_WIFI_CONNECTING]  = "WIFI_CONNECTING",
-    [SYS_STATE_HTTP_READY]       = "HTTP_READY",
-    [SYS_STATE_OPERATIONAL]      = "OPERATIONAL",
-    [SYS_STATE_EMERGENCY]        = "EMERGENCY",
-    [SYS_STATE_RECORDING]        = "RECORDING",
-    [SYS_STATE_OFFLINE]          = "OFFLINE",
-    [SYS_STATE_ERROR]            = "ERROR",
+    [SYS_STATE_BOOT]                = "BOOT",
+    [SYS_STATE_WIFI_CONNECTING]     = "WIFI_CONNECTING",
+    [SYS_STATE_TCP_CONNECTING]      = "TCP_CONNECTING",
+    [SYS_STATE_HTTP_READY]          = "HTTP_READY",
+    [SYS_STATE_OPERATIONAL]         = "OPERATIONAL",
+    [SYS_STATE_EMERGENCY]           = "EMERGENCY",
+    [SYS_STATE_RECORDING]           = "RECORDING",
+    [SYS_STATE_RECORDING_OFFLINE]   = "RECORDING_OFFLINE",
+    [SYS_STATE_SYNCING]             = "SYNCING",
+    [SYS_STATE_OFFLINE]             = "OFFLINE",
+    [SYS_STATE_ERROR]               = "ERROR",
 };
 
 /* =========================================================

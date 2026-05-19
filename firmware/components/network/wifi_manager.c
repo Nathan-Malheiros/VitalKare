@@ -12,6 +12,7 @@
 #include "esp_wifi.h"
 #include "esp_event.h"
 #include "esp_netif.h"
+#include "esp_timer.h"
 #include "nvs_flash.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
@@ -30,6 +31,42 @@ static wifi_state_cb_t      s_state_callback    = NULL;
 static bool                 s_connected         = false;
 static int8_t               s_rssi              = 0;
 static uint32_t             s_retry_count       = 0;
+
+/* =========================================================
+ * TIMER DE RECONEXÃO — evita vTaskDelay dentro de event handler
+ * ========================================================= */
+static esp_timer_handle_t s_retry_timer = NULL;
+
+static void reconnect_timer_cb(void *arg)
+{
+    ESP_LOGI(TAG, "Timer de reconexao disparado — chamando esp_wifi_connect()");
+    esp_wifi_connect();
+    /* O timer one-shot se auto-destrói após disparar para não vazar recursos */
+    esp_timer_delete(s_retry_timer);
+    s_retry_timer = NULL;
+}
+
+static void schedule_reconnect(uint32_t delay_ms)
+{
+    /* Cancela timer anterior se ainda estiver pendente */
+    if (s_retry_timer) {
+        esp_timer_stop(s_retry_timer);
+        esp_timer_delete(s_retry_timer);
+        s_retry_timer = NULL;
+    }
+
+    esp_timer_create_args_t args = {
+        .callback = reconnect_timer_cb,
+        .arg      = NULL,
+        .name     = "wifi_retry",
+    };
+    if (esp_timer_create(&args, &s_retry_timer) == ESP_OK) {
+        esp_timer_start_once(s_retry_timer, (uint64_t)delay_ms * 1000ULL);
+    } else {
+        ESP_LOGE(TAG, "Falha ao criar timer de reconexao — reconectando imediatamente");
+        esp_wifi_connect();
+    }
+}
 
 /* =========================================================
  * HANDLERS DE EVENTOS DO ESP-IDF
@@ -56,14 +93,14 @@ static void on_wifi_event(void *arg, esp_event_base_t base,
 
         /* Publica evento de desconexão */
         system_event_t evt = {
-            .type = EVT_WIFI_DISCONNECTED,
-            .priority = EVT_PRIO_HIGH,
+            .type         = EVT_WIFI_DISCONNECTED,
+            .priority     = EVT_PRIO_HIGH,
             .timestamp_ms = xTaskGetTickCount() * portTICK_PERIOD_MS,
         };
         event_post(&evt, false);
 
-        vTaskDelay(pdMS_TO_TICKS(delay_ms));
-        esp_wifi_connect();
+        /* CORREÇÃO P0: usa timer assíncrono — NÃO bloqueia o event loop */
+        schedule_reconnect(delay_ms);
     }
 }
 

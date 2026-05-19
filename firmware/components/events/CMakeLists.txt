@@ -1,5 +1,7 @@
 idf_component_register(
-    SRCS "event_dispatcher.c"
+    SRCS
+        "event_dispatcher.c"
+        "event_trace.c"
     INCLUDE_DIRS "."
     REQUIRES
         log

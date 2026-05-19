@@ -1,9 +1,23 @@
 idf_component_register(
-    SRCS "core.c"
+    SRCS
+        "core.c"
+        "task_monitor.c"
+        "memory_monitor.c"
+        "system_manager.c"
+        "time_sync.c"
+        "backpressure_manager.c"
     INCLUDE_DIRS "."
     REQUIRES
         log
         freertos
         nvs_flash
         esp_timer
+        heap
+        events
+        audio
+        network
+        storage
+        sensors
+        display
+        i2c_bus
 )

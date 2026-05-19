@@ -20,10 +20,13 @@
 typedef enum {
     SYS_STATE_BOOT = 0,
     SYS_STATE_WIFI_CONNECTING,
-    SYS_STATE_HTTP_READY,
+    SYS_STATE_TCP_CONNECTING,       /**< TCP socket em processo de conexão */
+    SYS_STATE_HTTP_READY,           /**< Legado — HTTP disponível */
     SYS_STATE_OPERATIONAL,
     SYS_STATE_EMERGENCY,
     SYS_STATE_RECORDING,
+    SYS_STATE_RECORDING_OFFLINE,    /**< Gravando sem conectividade (salva no SD) */
+    SYS_STATE_SYNCING,              /**< Sincronizando cache offline após reconexão */
     SYS_STATE_OFFLINE,
     SYS_STATE_ERROR,
 } sys_state_t;

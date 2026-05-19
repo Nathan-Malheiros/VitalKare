@@ -1,6 +1,23 @@
 /**
  * @file sensor_task.c
- * @brief Task de polling de sensores ambientais — 30 s, publica via HTTP REST
+ * @brief Task de polling de sensores ambientais — 30 s, publica via TCP (VK Protocol)
+ *
+ * ARQUITETURA:
+ *   Produtor de dados ambientais. A cada APP_SENSOR_POLL_INTERVAL_MS:
+ *   1. Lê HDC1080 (temp, umid), LDR (lux), MPU6050 (accel/giroscópio)
+ *   2. Preenche pkt_telemetry_env_t → vk_frame_build() → tcp_client_send_normal()
+ *   3. Se movimento detectado → frame pkt_telemetry_motion_t na fila crítica
+ *   4. Posta EVT_SENSOR_READING / EVT_SENSOR_MOTION para outros subsistemas
+ *
+ * RESPONSABILIDADES:
+ *   - Leitura e validação dos sensores
+ *   - Empacotamento em structs tipadas (sem JSON, sem HTTP)
+ *   - Descarte silencioso se TCP offline (telemetria é lossy by design)
+ *   - Detecção de postura por eixos do acelerômetro
+ *
+ * FILA:
+ *   tcp_client_send_normal() → fila normal TCP (lossy, sem retransmissão)
+ *   EVT_SENSOR_MOTION via event_post_critical() se movimento detectado
  */
 
 #include "sensor_task.h"
@@ -8,11 +25,15 @@
 #include "mpu6050.h"
 #include "ldr.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "../../config/app_config.h"
-#include "vitalkare_http.h"
-#include "event_dispatcher.h"
+#include "../../config/device_config.h"
+#include "../network/tcp_client.h"
+#include "../network/vk_protocol.h"
+#include "../events/event_dispatcher.h"
+#include "../core/task_monitor.h"
 
 static const char *TAG = "SENSORS";
 
@@ -51,6 +72,7 @@ void task_sensor_poll(void *arg)
     ESP_LOGI(TAG, "Task sensor_poll iniciada");
 
     for (;;) {
+        task_monitor_heartbeat(TASK_ID_SENSOR);
         /* ---- HDC1080 ---- */
         hdc1080_reading_t hdc = {0};
         if (hdc1080_read(&hdc) != ESP_OK || !hdc.valid) {
@@ -70,7 +92,7 @@ void task_sensor_poll(void *arg)
             motion = mpu.motion_detected;
         }
 
-        /* Derivação de postura a partir dos dados do acelerômetro */
+        /* Deriva postura a partir dos dados do acelerômetro */
         const char *posture = derive_posture_label(&mpu);
 
         /* Nível de ruído — placeholder (ADC de microfone analógico) */
@@ -79,33 +101,27 @@ void task_sensor_poll(void *arg)
         ESP_LOGI(TAG, "T=%.1f°C H=%.1f%% Lux=%.0f Motion=%d Postura=%s",
                  hdc.temperature_celsius, hdc.humidity_percent, lux, motion, posture);
 
-        /* Monta payload JSON e publica via HTTP REST */
-        char json[256];
-        snprintf(json, sizeof(json),
-                 "{\"device_id\":\"%s\",\"ward_id\":\"%s\","
-                 "\"patient_id\":\"%s\",\"firmware_version\":\"%s\","
-                 "\"timestamp_ms\":%lu,"
-                 "\"temperature_c\":%.2f,\"humidity_pct\":%.2f,"
-                 "\"lux\":%.1f,\"noise_db\":%.1f,\"motion\":%s,"
-                 "\"posture\":\"%s\"}",
-                 APP_DEFAULT_DEVICE_ID, APP_DEFAULT_WARD_ID,
-                 APP_DEFAULT_PATIENT_ID, APP_FIRMWARE_VERSION,
-                 (unsigned long)(xTaskGetTickCount() * portTICK_PERIOD_MS),
-                 hdc.temperature_celsius, hdc.humidity_percent,
-                 lux, noise_db,
-                 motion ? "true" : "false",
-                 posture);
-
-        char endpoint[96];
-        snprintf(endpoint, sizeof(endpoint),
-                 "/api/v1/devices/%s/environment", APP_DEFAULT_DEVICE_ID);
-
-        esp_err_t http_ret = vitalkare_http_post(endpoint, json);
-        if (http_ret != ESP_OK) {
-            ESP_LOGW(TAG, "HTTP POST environment falhou: %s", esp_err_to_name(http_ret));
+        /* --- Envia telemetria ambiental via TCP (lossy — descarta se offline) --- */
+        pkt_telemetry_env_t env_pkt = {
+            .temperature_c = hdc.temperature_celsius,
+            .humidity_pct  = hdc.humidity_percent,
+            .light_lux     = (uint16_t)(lux > 65535.0f ? 65535 : (int)lux),
+            .noise_db      = (uint16_t)noise_db,
+            .timestamp_ms  = (uint32_t)(esp_timer_get_time() / 1000),
+        };
+        static uint8_t s_env_frame[VK_HEADER_SIZE
+                                    + sizeof(pkt_telemetry_env_t)
+                                    + VK_CRC_SIZE];
+        int flen = vk_frame_build(s_env_frame, sizeof(s_env_frame),
+                                  PKT_TELEMETRY_ENV, tcp_client_next_seq(),
+                                  &env_pkt, sizeof(env_pkt));
+        if (flen > 0) {
+            if (!tcp_client_send_normal(s_env_frame, (uint16_t)flen)) {
+                ESP_LOGD(TAG, "TCP offline — telemetria ambiental descartada");
+            }
         }
 
-        /* Posta evento para outros subsistemas */
+        /* --- Posta evento para outros subsistemas (display, log) --- */
         system_event_t evt = {
             .type         = EVT_SENSOR_READING,
             .priority     = EVT_PRIO_LOW,
@@ -114,8 +130,10 @@ void task_sensor_poll(void *arg)
         if (motion) {
             evt.type     = EVT_SENSOR_MOTION;
             evt.priority = EVT_PRIO_MEDIUM;
+            event_post_critical(&evt, false);   /* movimento pode indicar queda */
+        } else {
+            event_post_normal(&evt);
         }
-        event_post(&evt, false);
 
         vTaskDelay(pdMS_TO_TICKS(APP_SENSOR_POLL_INTERVAL_MS));
     }

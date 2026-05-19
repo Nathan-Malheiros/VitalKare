@@ -4,14 +4,16 @@ idf_component_register(
         "mpu6050.c"
         "ldr.c"
         "sensor_task.c"
+        "max30102.c"
     INCLUDE_DIRS "."
     REQUIRES
         i2c_bus
         esp_driver_i2c
         esp_adc
+        esp_timer
         log
         freertos
-        http_client
         core
         events
+        network
 )
