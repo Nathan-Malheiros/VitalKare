@@ -13,6 +13,7 @@ Dependências:
 
 import argparse
 import csv
+import ipaddress
 import os
 import subprocess
 import sys
@@ -82,6 +83,37 @@ def ask_int_or_value(
     return ask_int(label, default)
 
 
+def validate_ipv4(value: str, label: str) -> str:
+    try:
+        return str(ipaddress.IPv4Address(value))
+    except ipaddress.AddressValueError as exc:
+        raise SystemExit(f"{label} invalido: {value}") from exc
+
+
+def resolve_static_ip_config(args: argparse.Namespace) -> dict:
+    if args.use_static_ip and args.clear_static_ip:
+        raise SystemExit("Use apenas uma opcao: --use-static-ip ou --clear-static-ip")
+
+    if args.use_static_ip:
+        if not args.static_ip or not args.gateway or not args.netmask:
+            raise SystemExit(
+                "IP fixo exige --static-ip, --gateway e --netmask"
+            )
+        return {
+            "enabled": True,
+            "ip": validate_ipv4(args.static_ip, "IP fixo"),
+            "gateway": validate_ipv4(args.gateway, "Gateway"),
+            "netmask": validate_ipv4(args.netmask, "Mascara"),
+        }
+
+    return {
+        "enabled": False,
+        "ip": "",
+        "gateway": "",
+        "netmask": "",
+    }
+
+
 def collect_params(args: argparse.Namespace) -> dict:
     print("\n╔══════════════════════════════════════╗")
     print("║  VitalKare — Provisionamento NVS     ║")
@@ -117,6 +149,7 @@ def collect_params(args: argparse.Namespace) -> dict:
         "device_id":  device_id,
         "ward_id":    ward_id,
         "patient_id": patient_id,
+        "static_ip":  resolve_static_ip_config(args),
     }
 
 
@@ -136,6 +169,7 @@ def write_nvs_csv(params: dict, csv_path: str) -> None:
         # wifi
         ["ssid",        "data",      "string", NVS_NAMESPACE, params["ssid"]],
         ["pass",        "data",      "string", NVS_NAMESPACE, params["pass"]],
+        ["wifi_static_en", "data",   "u8",     NVS_NAMESPACE, "1" if params["static_ip"]["enabled"] else "0"],
         # servidor
         ["server_host", "data",      "string", NVS_NAMESPACE, params["server_host"]],
         ["tcp_port",    "data",      "u16",    NVS_NAMESPACE, params["tcp_port"]],
@@ -149,6 +183,12 @@ def write_nvs_csv(params: dict, csv_path: str) -> None:
         ["ward_id",     "data",      "string", NVS_NAMESPACE, params["ward_id"]],
         ["patient_id",  "data",      "string", NVS_NAMESPACE, params["patient_id"]],
     ]
+    if params["static_ip"]["enabled"]:
+        rows.extend([
+            ["wifi_static_ip", "data", "string", NVS_NAMESPACE, params["static_ip"]["ip"]],
+            ["wifi_static_gw", "data", "string", NVS_NAMESPACE, params["static_ip"]["gateway"]],
+            ["wifi_static_nm", "data", "string", NVS_NAMESPACE, params["static_ip"]["netmask"]],
+        ])
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(NVS_CSV_HEADER)
@@ -240,6 +280,13 @@ def main():
     parser.add_argument("--device-id", help="ID do dispositivo")
     parser.add_argument("--ward-id", help="ID da ala")
     parser.add_argument("--patient-id", help="ID do paciente")
+    parser.add_argument("--use-static-ip", action="store_true",
+                        help="Grava a configuracao para usar IP fixo na interface Wi-Fi")
+    parser.add_argument("--clear-static-ip", action="store_true",
+                        help="Limpa a configuracao de IP fixo e volta a usar DHCP")
+    parser.add_argument("--static-ip", help="Endereco IPv4 fixo da placa")
+    parser.add_argument("--gateway", help="Gateway IPv4 para o IP fixo")
+    parser.add_argument("--netmask", help="Mascara IPv4 para o IP fixo")
     parser.add_argument("--non-interactive", action="store_true",
                         help="Usa defaults para campos opcionais sem abrir prompts")
     parser.add_argument("--dry-run", action="store_true",

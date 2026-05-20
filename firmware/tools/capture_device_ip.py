@@ -10,10 +10,31 @@ Uso:
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 import time
 
 import serial
+
+VK_IP_RE = re.compile(
+    r"VK_IP:\s*mode=(?P<mode>\S+)\s+ip=(?P<ip>[0-9.]+)\s+gw=(?P<gateway>[0-9.]+)\s+netmask=(?P<netmask>[0-9.]+)",
+    re.IGNORECASE,
+)
+LEGACY_IP_RE = re.compile(
+    r"IP obtido(?:\s*\((?P<mode>[A-Z]+)\))?:\s*(?P<ip>[0-9.]+)",
+    re.IGNORECASE,
+)
+
+
+def print_network_summary(network: dict[str, str]) -> None:
+    print("\n[OK] Rede capturada da placa:")
+    print(f"      modo: {network.get('mode', 'DHCP')}")
+    print(f"      ip: {network['ip']}")
+    if network.get("gateway"):
+        print(f"      gateway: {network['gateway']}")
+    if network.get("netmask"):
+        print(f"      netmask: {network['netmask']}")
+    print()
 
 
 def main() -> int:
@@ -27,7 +48,7 @@ def main() -> int:
     print("[INFO] Se a placa ainda nao reiniciou, aperte RESET agora.\n")
 
     deadline = time.time() + args.timeout
-    found_ip = None
+    found_network: dict[str, str] | None = None
 
     try:
         with serial.Serial(args.port, args.baud, timeout=0.25) as ser:
@@ -45,17 +66,31 @@ def main() -> int:
 
                 print(line)
 
-                marker = "IP obtido:"
-                if marker in line:
-                    found_ip = line.split(marker, 1)[1].strip()
-                    print(f"\n[OK] IP capturado da placa: {found_ip}\n")
+                match = VK_IP_RE.search(line)
+                if match:
+                    found_network = {
+                        "mode": match.group("mode").upper(),
+                        "ip": match.group("ip"),
+                        "gateway": match.group("gateway"),
+                        "netmask": match.group("netmask"),
+                    }
+                    print_network_summary(found_network)
+                    return 0
+
+                match = LEGACY_IP_RE.search(line)
+                if match:
+                    found_network = {
+                        "mode": (match.group("mode") or "DHCP").upper(),
+                        "ip": match.group("ip"),
+                    }
+                    print_network_summary(found_network)
                     return 0
     except serial.SerialException as exc:
         print(f"[ERRO] Falha ao abrir a serial {args.port}: {exc}")
         return 1
 
-    if found_ip:
-        print(f"\n[OK] IP capturado da placa: {found_ip}\n")
+    if found_network:
+        print_network_summary(found_network)
         return 0
 
     print("\n[AVISO] Nenhum IP foi capturado no tempo limite.")

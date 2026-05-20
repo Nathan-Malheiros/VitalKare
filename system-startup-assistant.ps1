@@ -95,6 +95,37 @@ function Select-HostIp {
     }
 }
 
+function ConvertTo-SubnetMask($prefixLength) {
+    $bytes = New-Object byte[] 4
+    for ($i = 0; $i -lt $prefixLength; $i++) {
+        $byteIndex = [math]::Floor($i / 8)
+        $bitIndex = 7 - ($i % 8)
+        $bytes[$byteIndex] = $bytes[$byteIndex] -bor (1 -shl $bitIndex)
+    }
+    return ([System.Net.IPAddress]::new($bytes)).ToString()
+}
+
+function Get-HostNetworkProfile($hostIp) {
+    $address = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+        Where-Object { $_.IPAddress -eq $hostIp } |
+        Select-Object -First 1
+    if (-not $address) {
+        return $null
+    }
+
+    $defaultRoute = Get-NetRoute -AddressFamily IPv4 -InterfaceIndex $address.InterfaceIndex -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue |
+        Sort-Object RouteMetric, ifMetric |
+        Select-Object -First 1
+
+    return [PSCustomObject]@{
+        HostIp         = $hostIp
+        InterfaceAlias = $address.InterfaceAlias
+        PrefixLength   = $address.PrefixLength
+        Netmask        = ConvertTo-SubnetMask $address.PrefixLength
+        Gateway        = $(if ($defaultRoute) { $defaultRoute.NextHop } else { $null })
+    }
+}
+
 function Update-DashboardEnv($hostIp) {
     $content = @(
         "# Gerado por system-startup-assistant.ps1"
@@ -357,7 +388,110 @@ function Enter-IdfEnvironment($idfPath) {
     $script:IdfEnvironmentLoaded = $true
 }
 
-function Provision-Device($idfPath, $hostIp) {
+function Invoke-DeviceProvision {
+    param(
+        [Parameter(Mandatory = $true)]$DeviceConfig,
+        [Parameter(Mandatory = $true)][string]$IdfPath,
+        [switch]$UseStaticIp,
+        [string]$StaticIp,
+        [string]$Gateway,
+        [string]$Netmask
+    )
+
+    Enter-IdfEnvironment $IdfPath
+    Push-Location $firmwareDir
+    try {
+        $commandArgs = @(
+            $provisionScript,
+            '--port', $DeviceConfig.ComPort,
+            '--ssid', $DeviceConfig.Ssid,
+            '--wifi-pass', $DeviceConfig.WifiPass,
+            '--server-host', $DeviceConfig.HostIp,
+            '--tcp-port', $DeviceConfig.TcpPort,
+            '--device-id', $DeviceConfig.DeviceId,
+            '--ward-id', $DeviceConfig.WardId,
+            '--patient-id', $DeviceConfig.PatientId
+        )
+
+        if ($UseStaticIp) {
+            $commandArgs += @(
+                '--use-static-ip',
+                '--static-ip', $StaticIp,
+                '--gateway', $Gateway,
+                '--netmask', $Netmask
+            )
+        }
+        else {
+            $commandArgs += '--clear-static-ip'
+        }
+
+        $commandArgs += '--non-interactive'
+
+        & python @commandArgs
+        if ($LASTEXITCODE -ne 0) {
+            throw 'Falha ao gravar a NVS da placa.'
+        }
+    }
+    finally {
+        Pop-Location
+    }
+}
+
+function Capture-DeviceNetworkInfo {
+    param(
+        [Parameter(Mandatory = $true)][string]$IdfPath,
+        [Parameter(Mandatory = $true)][string]$ComPort,
+        [int]$TimeoutSec = 60
+    )
+
+    Enter-IdfEnvironment $IdfPath
+    Push-Location $firmwareDir
+    try {
+        $captureOutput = @(& python $captureScript --port $ComPort --timeout $TimeoutSec 2>&1)
+        $captureOutput | ForEach-Object { "$_" }
+        $exitCode = $LASTEXITCODE
+
+        if ($exitCode -eq 1) {
+            throw 'Falha ao abrir a porta serial para capturar o IP da placa.'
+        }
+        if ($exitCode -ne 0 -and $exitCode -ne 2) {
+            throw "Captura da rede da placa falhou (codigo $exitCode)."
+        }
+
+        $network = [ordered]@{
+            Mode     = $null
+            Ip       = $null
+            Gateway  = $null
+            Netmask  = $null
+            TimedOut = ($exitCode -eq 2)
+        }
+
+        foreach ($line in $captureOutput) {
+            if ("$line" -match '^\s*modo:\s*(.+)$') {
+                $network.Mode = $Matches[1].Trim().ToUpper()
+                continue
+            }
+            if ("$line" -match '^\s*ip:\s*([0-9.]+)$') {
+                $network.Ip = $Matches[1]
+                continue
+            }
+            if ("$line" -match '^\s*gateway:\s*([0-9.]+)$') {
+                $network.Gateway = $Matches[1]
+                continue
+            }
+            if ("$line" -match '^\s*netmask:\s*([0-9.]+)$') {
+                $network.Netmask = $Matches[1]
+            }
+        }
+
+        return [PSCustomObject]$network
+    }
+    finally {
+        Pop-Location
+    }
+}
+
+function Provision-Device($idfPath, $hostIp, $hostNetwork) {
     Write-Section 'Provisionamento da placa'
 
     $boardName = Ask-Value 'Qual placa sera provisionada (ex: ESP32-S3 DevKit ou KIIRA V2)' 'ESP32-S3 DevKit'
@@ -370,64 +504,105 @@ function Provision-Device($idfPath, $hostIp) {
     $patientName = Ask-Value 'Nome do paciente (opcional)' ''
     $patientId = Ask-Value 'ID do paciente' 'PAC-000'
     $tcpPort = Ask-Value 'Porta TCP do servidor' '7890'
+    $deviceConfig = [ordered]@{
+        BoardName  = $boardName
+        ComPort    = $comPort
+        Ssid       = $ssid
+        WifiPass   = $wifiPass
+        DeviceId   = $deviceId
+        WardId     = $wardId
+        RoomLabel  = $roomLabel
+        PatientName = $patientName
+        PatientId  = $patientId
+        TcpPort    = $tcpPort
+        HostIp     = $hostIp
+    }
     $deviceIp = $null
+    $networkInfo = $null
 
     Write-Host ''
-    Write-Host "[INFO] Gravando configuracao na $boardName ($comPort)..." -ForegroundColor Cyan
+    Write-Host "[INFO] Gravando configuracao DHCP inicial na $boardName ($comPort)..." -ForegroundColor Cyan
 
-    Enter-IdfEnvironment $idfPath
-    Push-Location $firmwareDir
     try {
-        & python $provisionScript `
-            --port $comPort `
-            --ssid $ssid `
-            --wifi-pass $wifiPass `
-            --server-host $hostIp `
-            --tcp-port $tcpPort `
-            --device-id $deviceId `
-            --ward-id $wardId `
-            --patient-id $patientId `
-            --non-interactive
-        if ($LASTEXITCODE -ne 0) {
-            throw 'Falha ao gravar a NVS da placa.'
+        Invoke-DeviceProvision -DeviceConfig $deviceConfig -IdfPath $idfPath
+    }
+    catch {
+        throw
+    }
+
+    Write-Host ''
+    Write-Host '[OK] Provisionamento DHCP concluido.' -ForegroundColor Green
+    Write-Host '[INFO] Aperte RESET na placa para ela conectar no SSID informado.' -ForegroundColor Yellow
+
+    try {
+        $networkInfo = Capture-DeviceNetworkInfo -IdfPath $idfPath -ComPort $comPort -TimeoutSec 60
+        if ($networkInfo.Ip) {
+            $deviceIp = $networkInfo.Ip
+            Write-Host "[OK] A placa conectou via $($networkInfo.Mode) com IP $($networkInfo.Ip)." -ForegroundColor Green
+        }
+        elseif ($networkInfo.TimedOut) {
+            Write-Host '[AVISO] Nao foi possivel capturar o IP automaticamente dentro do tempo limite.' -ForegroundColor Yellow
         }
     }
-    finally {
-        Pop-Location
+    catch {
+        Write-Host "[AVISO] Nao foi possivel capturar a rede automaticamente: $($_.Exception.Message)" -ForegroundColor Yellow
     }
 
-    Write-Host ''
-    Write-Host '[OK] Provisionamento concluido.' -ForegroundColor Green
-    Write-Host '[INFO] Aperte RESET na placa para ela reiniciar com as novas credenciais.' -ForegroundColor Yellow
+    if ($hostNetwork) {
+        Write-Host "[INFO] Rede local detectada: interface=$($hostNetwork.InterfaceAlias) gateway=$($hostNetwork.Gateway) mascara=$($hostNetwork.Netmask)" -ForegroundColor Cyan
+    }
 
-    if (Ask-YesNo 'Deseja capturar o IP obtido pela placa agora' 'S') {
+    $shouldFixIp = $false
+    if ($deviceIp) {
+        $shouldFixIp = Ask-YesNo "Deseja fixar o IP $deviceIp na placa" 'N'
+    }
+    else {
+        $shouldFixIp = Ask-YesNo 'Deseja configurar um IP fixo na placa agora' 'N'
+    }
+
+    if ($shouldFixIp) {
+        $staticIp = $(if ($deviceIp) { $deviceIp } else { Ask-Value 'IP fixo da placa' '' -Required })
+        $gatewayDefault = $(if ($networkInfo -and $networkInfo.Gateway) { $networkInfo.Gateway } elseif ($hostNetwork -and $hostNetwork.Gateway) { $hostNetwork.Gateway } else { $null })
+        $netmaskDefault = $(if ($networkInfo -and $networkInfo.Netmask) { $networkInfo.Netmask } elseif ($hostNetwork -and $hostNetwork.Netmask) { $hostNetwork.Netmask } else { '255.255.255.0' })
+        $gateway = Ask-Value 'Gateway da placa' $gatewayDefault -Required
+        $netmask = Ask-Value 'Mascara da placa' $netmaskDefault -Required
+
+        Write-Host ''
+        Write-Host "[INFO] Regravando a placa para usar IP fixo $staticIp..." -ForegroundColor Cyan
+        Invoke-DeviceProvision -DeviceConfig $deviceConfig -IdfPath $idfPath -UseStaticIp -StaticIp $staticIp -Gateway $gateway -Netmask $netmask
+
+        Write-Host ''
+        Write-Host '[OK] Configuracao de IP fixo gravada na NVS.' -ForegroundColor Green
+        Write-Host '[INFO] Aperte RESET na placa novamente para ela subir com o IP fixo.' -ForegroundColor Yellow
+
+        $deviceIp = $staticIp
         try {
-            Enter-IdfEnvironment $idfPath
-            Push-Location $firmwareDir
-            try {
-                $captureOutput = @(& python $captureScript --port $comPort --timeout 60 2>&1)
-                $captureOutput | ForEach-Object { "$_" }
-                if ($LASTEXITCODE -ne 0) {
-                    throw 'Captura de IP nao concluiu com sucesso.'
+            $fixedInfo = Capture-DeviceNetworkInfo -IdfPath $idfPath -ComPort $comPort -TimeoutSec 60
+            if ($fixedInfo.Ip) {
+                $deviceIp = $fixedInfo.Ip
+                if ($fixedInfo.Ip -ne $staticIp) {
+                    Write-Host "[AVISO] A placa voltou reportando IP $($fixedInfo.Ip), diferente do IP fixado $staticIp." -ForegroundColor Yellow
                 }
-                foreach ($line in $captureOutput) {
-                    if ("$line" -match 'IP capturado da placa:\s*([0-9.]+)') {
-                        $deviceIp = $Matches[1]
-                        break
-                    }
+                if ($fixedInfo.Mode -ne 'FIXO') {
+                    Write-Host "[AVISO] A placa nao confirmou modo FIXO; verifique o reboot e a rede antes de publicar no dashboard." -ForegroundColor Yellow
                 }
             }
-            finally {
-                Pop-Location
+            elseif ($fixedInfo.TimedOut) {
+                Write-Host '[AVISO] Nao houve confirmacao automatica do IP fixo apos o segundo reboot.' -ForegroundColor Yellow
             }
         }
         catch {
-            Write-Host "[AVISO] Nao foi possivel capturar o IP automaticamente: $($_.Exception.Message)" -ForegroundColor Yellow
+            Write-Host "[AVISO] Nao foi possivel confirmar o IP fixo automaticamente: $($_.Exception.Message)" -ForegroundColor Yellow
         }
     }
 
+    if (-not (Ask-YesNo 'Ja pode mandar a conexao/publicacao dessa placa para o dashboard' 'S')) {
+        Write-Host '[INFO] Provisionamento encerrado sem publicar no dashboard.' -ForegroundColor Cyan
+        return
+    }
+
     if (-not $deviceIp -and (Ask-YesNo 'Deseja informar manualmente o IP atual da placa para registrar no backend' 'S')) {
-        $deviceIp = Ask-Value 'IP atual da placa' '' 
+        $deviceIp = Ask-Value 'IP atual da placa' '' -Required
     }
 
     try {
@@ -461,13 +636,17 @@ if (-not $idfPath) {
 }
 
 $hostIp = Select-HostIp
+$hostNetwork = Get-HostNetworkProfile $hostIp
 Write-Host ''
 Write-Host "[OK] IP selecionado para o host VitalKare: $hostIp" -ForegroundColor Green
+if ($hostNetwork) {
+    Write-Host "[INFO] Gateway do host: $($hostNetwork.Gateway) | Mascara: $($hostNetwork.Netmask)" -ForegroundColor Cyan
+}
 
 Start-Supervisorio $hostIp
 
 if (Ask-YesNo 'Deseja provisionar uma placa agora' 'S') {
-    Provision-Device $idfPath $hostIp
+    Provision-Device $idfPath $hostIp $hostNetwork
 }
 
 Write-Host ''

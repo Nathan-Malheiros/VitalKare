@@ -33,11 +33,31 @@ static wifi_state_cb_t      s_state_callback    = NULL;
 static bool                 s_connected         = false;
 static int8_t               s_rssi              = 0;
 static uint32_t             s_retry_count       = 0;
+static bool                 s_static_ip_active  = false;
 
 /* =========================================================
  * TIMER DE RECONEXÃO — evita vTaskDelay dentro de event handler
  * ========================================================= */
 static esp_timer_handle_t s_retry_timer = NULL;
+
+typedef struct {
+    bool enabled;
+    char ip[16];
+    char gateway[16];
+    char netmask[16];
+} wifi_static_ip_config_t;
+
+static void load_nvs_string(nvs_handle_t nvs, const char *key, char *out, size_t out_size)
+{
+    out[0] = '\0';
+    size_t len = out_size;
+    if (nvs_get_str(nvs, key, out, &len) != ESP_OK) {
+        out[0] = '\0';
+        out[out_size - 1] = '\0';
+        return;
+    }
+    out[out_size - 1] = '\0';
+}
 
 static bool load_wifi_credentials_from_namespace(const char *ns,
                                                  char *ssid, size_t ssid_size,
@@ -56,6 +76,87 @@ static bool load_wifi_credentials_from_namespace(const char *ns,
     nvs_close(nvs);
 
     return ssid_ret == ESP_OK && pass_ret == ESP_OK && ssid[0] != '\0';
+}
+
+static bool load_static_ip_config(wifi_static_ip_config_t *cfg)
+{
+    if (!cfg) {
+        return false;
+    }
+
+    memset(cfg, 0, sizeof(*cfg));
+
+    nvs_handle_t nvs;
+    if (nvs_open(DEVICE_NVS_NAMESPACE, NVS_READONLY, &nvs) != ESP_OK) {
+        return false;
+    }
+
+    uint8_t enabled = 0;
+    if (nvs_get_u8(nvs, DEVICE_NVS_KEY_WIFI_STATIC_EN, &enabled) != ESP_OK || enabled == 0) {
+        nvs_close(nvs);
+        return false;
+    }
+
+    cfg->enabled = true;
+    load_nvs_string(nvs, DEVICE_NVS_KEY_WIFI_STATIC_IP, cfg->ip, sizeof(cfg->ip));
+    load_nvs_string(nvs, DEVICE_NVS_KEY_WIFI_STATIC_GW, cfg->gateway, sizeof(cfg->gateway));
+    load_nvs_string(nvs, DEVICE_NVS_KEY_WIFI_STATIC_NM, cfg->netmask, sizeof(cfg->netmask));
+    nvs_close(nvs);
+
+    return cfg->ip[0] != '\0' && cfg->gateway[0] != '\0' && cfg->netmask[0] != '\0';
+}
+
+static bool parse_ipv4_string(const char *value, esp_ip4_addr_t *out)
+{
+    if (!value || !out) {
+        return false;
+    }
+    return esp_netif_str_to_ip4(value, out) == ESP_OK;
+}
+
+static bool apply_static_ip_if_configured(void)
+{
+    wifi_static_ip_config_t cfg;
+    if (!load_static_ip_config(&cfg)) {
+        s_static_ip_active = false;
+        return false;
+    }
+
+    esp_netif_t *sta_netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+    if (!sta_netif) {
+        ESP_LOGE(TAG, "Configuracao de IP fixo encontrada, mas a interface STA nao foi localizada");
+        s_static_ip_active = false;
+        return false;
+    }
+
+    esp_netif_ip_info_t ip_info = {0};
+    if (!parse_ipv4_string(cfg.ip, &ip_info.ip)
+        || !parse_ipv4_string(cfg.gateway, &ip_info.gw)
+        || !parse_ipv4_string(cfg.netmask, &ip_info.netmask)) {
+        ESP_LOGE(TAG, "Configuracao de IP fixo invalida na NVS (ip=%s gw=%s mask=%s) — usando DHCP",
+                 cfg.ip, cfg.gateway, cfg.netmask);
+        s_static_ip_active = false;
+        return false;
+    }
+
+    esp_err_t ret = esp_netif_dhcpc_stop(sta_netif);
+    if (ret != ESP_OK && ret != ESP_ERR_ESP_NETIF_DHCP_ALREADY_STOPPED) {
+        ESP_LOGE(TAG, "Falha ao parar DHCP antes de aplicar IP fixo: %s", esp_err_to_name(ret));
+        s_static_ip_active = false;
+        return false;
+    }
+
+    ret = esp_netif_set_ip_info(sta_netif, &ip_info);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Falha ao aplicar IP fixo %s: %s", cfg.ip, esp_err_to_name(ret));
+        s_static_ip_active = false;
+        return false;
+    }
+
+    s_static_ip_active = true;
+    ESP_LOGI(TAG, "IP fixo configurado antes do start: ip=%s gw=%s mask=%s",
+             cfg.ip, cfg.gateway, cfg.netmask);
+    return true;
 }
 
 static void reconnect_timer_cb(void *arg)
@@ -138,7 +239,13 @@ static void on_ip_event(void *arg, esp_event_base_t base,
 {
     if (id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t *event = (ip_event_got_ip_t *)data;
-        ESP_LOGI(TAG, "IP obtido: " IPSTR, IP2STR(&event->ip_info.ip));
+        const char *mode = s_static_ip_active ? "FIXO" : "DHCP";
+        ESP_LOGI(TAG, "IP obtido (%s): " IPSTR, mode, IP2STR(&event->ip_info.ip));
+        ESP_LOGI(TAG, "VK_IP: mode=%s ip=" IPSTR " gw=" IPSTR " netmask=" IPSTR,
+                 mode,
+                 IP2STR(&event->ip_info.ip),
+                 IP2STR(&event->ip_info.gw),
+                 IP2STR(&event->ip_info.netmask));
 
         s_connected  = true;
         s_retry_count = 0;
@@ -247,6 +354,12 @@ esp_err_t wifi_manager_init(void)
     wifi_cfg.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
     wifi_cfg.sta.pmf_cfg.capable    = true;
     wifi_cfg.sta.pmf_cfg.required   = false;
+
+    if (apply_static_ip_if_configured()) {
+        ESP_LOGI(TAG, "Wi-Fi sera iniciado com IP fixo persistido em NVS");
+    } else {
+        ESP_LOGI(TAG, "Wi-Fi sera iniciado usando DHCP");
+    }
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_cfg));
