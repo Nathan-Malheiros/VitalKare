@@ -44,6 +44,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <unistd.h>     /* fsync(), fileno() */
+#include <errno.h>
 
 static const char *TAG = "JRNL";
 

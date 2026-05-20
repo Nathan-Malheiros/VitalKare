@@ -36,6 +36,8 @@
 #include "esp_err.h"
 #include <stdint.h>
 #include <stdbool.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 
 /* Aliases de compatibilidade com código legado */
 #define AUDIO_MAX_DURATION_S    10

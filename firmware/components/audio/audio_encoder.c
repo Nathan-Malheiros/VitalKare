@@ -22,6 +22,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "../../config/app_config.h"
+#include "../../config/hardware_config.h"
 #include <string.h>
 
 #include "../network/tcp_client.h"

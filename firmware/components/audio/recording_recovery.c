@@ -36,6 +36,7 @@
 #include "../storage/sd_manager.h"
 #include "../core/vk_assert.h"
 #include "../../config/app_config.h"
+#include "../../config/hardware_config.h"
 #include "nvs_flash.h"
 #include "nvs.h"
 #include "esp_log.h"
@@ -44,6 +45,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <unistd.h>
 
 static const char *TAG = "REC_REC";
 

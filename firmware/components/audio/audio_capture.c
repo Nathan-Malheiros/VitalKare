@@ -28,6 +28,7 @@
 #include "../../config/app_config.h"
 #include "../events/event_dispatcher.h"
 #include "../core/system_manager.h"
+#include "../core/task_monitor.h"
 #include "../core/vk_assert.h"
 #include <string.h>
 #include <stdatomic.h>
