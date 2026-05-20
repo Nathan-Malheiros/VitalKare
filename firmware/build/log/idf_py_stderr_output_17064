@@ -1,0 +1,5 @@
+Command: C:\Users\natha\.espressif\python_env\idf6.0_py3.14_env\Scripts\python.exe C:\esp\v6.0.1\esp-idf\tools/idf_monitor.py -p COM8 -b 115200 --toolchain-prefix xtensa-esp32s3-elf- --target esp32s3 --revision 0 C:\Users\natha\OneDrive\Documentos\VitalKare\firmware\build\vitalkare-firmware.elf C:\Users\natha\OneDrive\Documentos\VitalKare\firmware\build\bootloader\bootloader.elf --no-reset --force-color -m 'C:\Users\natha\.espressif\python_env\idf6.0_py3.14_env\Scripts\python.exe' 'C:\esp\v6.0.1\esp-idf\tools\idf.py' '-p' 'COM8'
+[0;33m--- Warning: GDB cannot open serial ports accessed as COMx[0m
+[0;33m--- Using \\.\COM8 instead...[0m
+[0;33m--- esp-idf-monitor 1.9.0 on \\.\COM8 115200[0m
+[0;33m--- Quit: Ctrl+] | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H[0m

@@ -12,7 +12,7 @@
  * main.c é apenas o orquestrador de inicialização.
  *
  * @version 2.0.0
- * @hardware KIIRA V2 — ESP32-S3
+ * @hardware Perfis suportados: KIIRA V2 completa ou ESP32-S3 DevKit reduzido
  */
 
 #include <stdio.h>
@@ -27,6 +27,7 @@
 
 /* Configurações */
 #include "config/app_config.h"
+#include "config/board_profile.h"
 #include "config/hardware_config.h"
 
 /* Componentes */
@@ -57,6 +58,11 @@
 #include "watchdog/watchdog.h"
 
 static const char *TAG = "MAIN";
+
+static void log_feature_skip(const char *feature)
+{
+    ESP_LOGI(TAG, "  [SKIP] %s — indisponivel no perfil %s", feature, VK_BOARD_TAG);
+}
 
 /* =========================================================
  * HANDLERS DE EVENTOS — registrados no event_dispatcher
@@ -169,82 +175,109 @@ static esp_err_t init_nvs(void)
 
 static void init_hardware(void)
 {
-    ESP_LOGI(TAG, "=== Hardware Init Start ===");
+    ESP_LOGI(TAG, "=== Hardware Init Start | Board: %s (%s) ===",
+             VK_BOARD_NAME, VK_BOARD_RUNTIME_MODE);
     bool all_ok = true;
 
     /* SD Card */
-    if (sd_manager_init() == ESP_OK) {
-        ESP_LOGI(TAG, "  [PASS] SD Card montado");
-        sd_manager_mkdir(APP_SD_LOG_DIR);
-        sd_manager_mkdir(APP_SD_AUDIO_DIR);
-        sd_manager_mkdir(APP_SD_IMAGE_DIR);
-        sd_manager_mkdir(APP_SD_CACHE_DIR);
+    if (VK_BOARD_HAS_STORAGE) {
+        if (sd_manager_init() == ESP_OK) {
+            ESP_LOGI(TAG, "  [PASS] SD Card montado");
+            sd_manager_mkdir(APP_SD_LOG_DIR);
+            sd_manager_mkdir(APP_SD_AUDIO_DIR);
+            sd_manager_mkdir(APP_SD_IMAGE_DIR);
+            sd_manager_mkdir(APP_SD_CACHE_DIR);
+        } else {
+            ESP_LOGW(TAG, "  [FAIL] SD Card — operacao sem storage local");
+            all_ok = false;
+        }
     } else {
-        ESP_LOGW(TAG, "  [FAIL] SD Card — operacao sem storage local");
-        all_ok = false;
+        log_feature_skip("SD Card");
     }
 
     /* Display OLED — periférico opcional; falha não é fatal */
-    static oled_ctx_t oled_ctx;
-    if (oled_init(&oled_ctx) == ESP_OK) {
-        ESP_LOGI(TAG, "  [PASS] OLED display");
+    if (VK_BOARD_HAS_DISPLAY) {
+        static oled_ctx_t oled_ctx;
+        if (oled_init(&oled_ctx) == ESP_OK) {
+            ESP_LOGI(TAG, "  [PASS] OLED display");
+        } else {
+            ESP_LOGW(TAG, "  [FAIL] OLED — display desativado");
+        }
     } else {
-        ESP_LOGW(TAG, "  [FAIL] OLED — display desativado");
+        log_feature_skip("OLED display");
     }
 
     /* I2C Sensores */
-    esp_err_t hdc_ret = hdc1080_init();
-    if (hdc_ret == ESP_OK) {
-        ESP_LOGI(TAG, "  [PASS] HDC1080 (temp/humidity)");
-    } else {
-        ESP_LOGW(TAG, "  [FAIL] HDC1080 err=%s", esp_err_to_name(hdc_ret));
-        all_ok = false;
-    }
+    if (VK_BOARD_HAS_ENV_SENSORS) {
+        esp_err_t hdc_ret = hdc1080_init();
+        if (hdc_ret == ESP_OK) {
+            ESP_LOGI(TAG, "  [PASS] HDC1080 (temp/humidity)");
+        } else {
+            ESP_LOGW(TAG, "  [FAIL] HDC1080 err=%s", esp_err_to_name(hdc_ret));
+            all_ok = false;
+        }
 
-    esp_err_t mpu_ret = mpu6050_init();
-    if (mpu_ret == ESP_OK) {
-        ESP_LOGI(TAG, "  [PASS] MPU6050 (motion)");
-    } else {
-        ESP_LOGW(TAG, "  [FAIL] MPU6050 err=%s", esp_err_to_name(mpu_ret));
-    }
+        esp_err_t mpu_ret = mpu6050_init();
+        if (mpu_ret == ESP_OK) {
+            ESP_LOGI(TAG, "  [PASS] MPU6050 (motion)");
+        } else {
+            ESP_LOGW(TAG, "  [FAIL] MPU6050 err=%s", esp_err_to_name(mpu_ret));
+        }
 
-    ldr_init();
-    ESP_LOGI(TAG, "  [PASS] LDR (ambient light)");
+        ldr_init();
+        ESP_LOGI(TAG, "  [PASS] LDR (ambient light)");
+    } else {
+        log_feature_skip("Sensores ambientais");
+    }
 
     /* Oxímetro MAX30102 */
-    if (max30102_init() == ESP_OK) {
-        ESP_LOGI(TAG, "  [PASS] MAX30102 (oximeter)");
+    if (VK_BOARD_HAS_OXIMETER) {
+        if (max30102_init() == ESP_OK) {
+            ESP_LOGI(TAG, "  [PASS] MAX30102 (oximeter)");
+        } else {
+            ESP_LOGW(TAG, "  [FAIL] MAX30102 — oximetro desativado");
+        }
     } else {
-        ESP_LOGW(TAG, "  [FAIL] MAX30102 — oximetro desativado");
+        log_feature_skip("Oximetro MAX30102");
     }
 
     /* Botões — interrupções ANYEDGE */
-    if (button_handler_init() == ESP_OK) {
-        ESP_LOGI(TAG, "  [PASS] Button handler (GPIO %d, %d)",
-                 HW_BTN_A_GPIO, HW_BTN_B_GPIO);
+    if (VK_BOARD_HAS_BUTTONS) {
+        if (button_handler_init() == ESP_OK) {
+            ESP_LOGI(TAG, "  [PASS] Button handler (GPIO %d, %d)",
+                     HW_BTN_A_GPIO, HW_BTN_B_GPIO);
+        } else {
+            ESP_LOGW(TAG, "  [FAIL] Button handler — continuando sem botoes");
+            all_ok = false;
+        }
     } else {
-        ESP_LOGW(TAG, "  [FAIL] Button handler — continuando sem botoes");
-        all_ok = false;
+        log_feature_skip("Buttons");
     }
 
-    /* AUDIO DISABLED: GPIO37 conflicts with Octal PSRAM (DQ4/5). Fix
-     * HW_MIC_DATA_GPIO in hardware_config.h before re-enabling. */
+    /* Áudio */
+    if (!VK_BOARD_HAS_AUDIO) {
+        log_feature_skip("Audio I2S");
+    }
 #if 0
-    if (audio_capture_init() == ESP_OK) {
-        ESP_LOGI(TAG, "  [PASS] Audio I2S PDM + PSRAM chunk pool");
-    } else {
-        ESP_LOGE(TAG, "  [FAIL] Audio capture init — FATAL");
-        esp_restart();
-    }
+    if (VK_BOARD_HAS_AUDIO) {
+        if (audio_capture_init() == ESP_OK) {
+            ESP_LOGI(TAG, "  [PASS] Audio I2S PDM + PSRAM chunk pool");
+        } else {
+            ESP_LOGE(TAG, "  [FAIL] Audio capture init — FATAL");
+            esp_restart();
+        }
 
-    if (audio_encoder_init() == ESP_OK) {
-        ESP_LOGI(TAG, "  [PASS] Audio ADPCM encoder");
-    } else {
-        ESP_LOGE(TAG, "  [FAIL] Audio encoder init — FATAL");
-        esp_restart();
+        if (audio_encoder_init() == ESP_OK) {
+            ESP_LOGI(TAG, "  [PASS] Audio ADPCM encoder");
+        } else {
+            ESP_LOGE(TAG, "  [FAIL] Audio encoder init — FATAL");
+            esp_restart();
+        }
     }
 #else
-    ESP_LOGW(TAG, "  [SKIP] Audio disabled — GPIO37/PSRAM conflict");
+    if (VK_BOARD_HAS_AUDIO) {
+        ESP_LOGW(TAG, "  [SKIP] Audio disabled — GPIO37/PSRAM conflict");
+    }
 #endif
 
     ESP_LOGI(TAG, "=== Hardware Init %s | Heap: %lu B | PSRAM: %lu B ===",
@@ -256,10 +289,12 @@ static void init_hardware(void)
 static void register_event_handlers(void)
 {
     /* Botões — novos eventos com PRESSED + RELEASED */
-    event_register_handler(EVT_BTN_A_PRESSED,       on_btn_a_pressed);
-    event_register_handler(EVT_BTN_A_RELEASED,      on_btn_a_released);
-    event_register_handler(EVT_BTN_B_PRESSED,       on_btn_b_pressed);
-    event_register_handler(EVT_BTN_B_RELEASED,      on_btn_b_released);
+    if (VK_BOARD_HAS_BUTTONS) {
+        event_register_handler(EVT_BTN_A_PRESSED,       on_btn_a_pressed);
+        event_register_handler(EVT_BTN_A_RELEASED,      on_btn_a_released);
+        event_register_handler(EVT_BTN_B_PRESSED,       on_btn_b_pressed);
+        event_register_handler(EVT_BTN_B_RELEASED,      on_btn_b_released);
+    }
 
     /* Rede — TCP substitui HTTP */
     event_register_handler(EVT_WIFI_CONNECTED,      on_wifi_connected);
@@ -283,30 +318,39 @@ static void create_tasks(void)
                 "events", TASK_STACK_EVENTS,
                 NULL, TASK_PRIO_EVENTS, NULL);
 
-    /* Botões */
-    xTaskCreate(task_button_handler,
-                "buttons", TASK_STACK_BUTTONS,
-                NULL, TASK_PRIO_BUTTONS, NULL);
+    if (VK_BOARD_HAS_BUTTONS) {
+        xTaskCreate(task_button_handler,
+                    "buttons", TASK_STACK_BUTTONS,
+                    NULL, TASK_PRIO_BUTTONS, NULL);
+    }
 
     /* Sensores ambientais */
-    xTaskCreate(task_sensor_poll,
-                "sensors", TASK_STACK_SENSORS,
-                NULL, TASK_PRIO_SENSORS, NULL);
+    if (VK_BOARD_HAS_ENV_SENSORS) {
+        xTaskCreate(task_sensor_poll,
+                    "sensors", TASK_STACK_SENSORS,
+                    NULL, TASK_PRIO_SENSORS, NULL);
+    }
 
     /* Oxímetro MAX30102 */
-    xTaskCreate(task_oximeter_poll,
-                "oximeter", 4096,
-                NULL, TASK_PRIO_SENSORS, NULL);
+    if (VK_BOARD_HAS_OXIMETER) {
+        xTaskCreate(task_oximeter_poll,
+                    "oximeter", 4096,
+                    NULL, TASK_PRIO_SENSORS, NULL);
+    }
 
     /* Display OLED */
-    xTaskCreate(task_display_update,
-                "display", TASK_STACK_DISPLAY,
-                NULL, TASK_PRIO_DISPLAY, NULL);
+    if (VK_BOARD_HAS_DISPLAY) {
+        xTaskCreate(task_display_update,
+                    "display", TASK_STACK_DISPLAY,
+                    NULL, TASK_PRIO_DISPLAY, NULL);
+    }
 
     /* Storage flush */
-    xTaskCreate(task_storage_flush,
-                "storage", TASK_STACK_STORAGE,
-                NULL, TASK_PRIO_STORAGE, NULL);
+    if (VK_BOARD_HAS_STORAGE) {
+        xTaskCreate(task_storage_flush,
+                    "storage", TASK_STACK_STORAGE,
+                    NULL, TASK_PRIO_STORAGE, NULL);
+    }
 
     /* Wi-Fi manager */
     xTaskCreate(task_wifi_manager,
@@ -325,8 +369,8 @@ static void create_tasks(void)
 
     /* Command processor (comandos do backend) */
     xTaskCreate(task_command_processor,
-                "cmd_proc", 4096,
-                NULL, TASK_PRIO_NETWORK - 1, NULL);
+                "cmd_proc", TASK_STACK_CMD_PROC,
+                NULL, TASK_PRIO_CMD_PROC, NULL);
 
     /* Audio tasks disabled — see hardware_config.h HW_MIC_DATA_GPIO */
 #if 0
@@ -339,10 +383,11 @@ static void create_tasks(void)
                 NULL, TASK_PRIO_AUDIO - 1, NULL);
 #endif
 
-    /* Câmera */
-    xTaskCreate(task_camera_stream,
-                "camera", TASK_STACK_CAMERA,
-                NULL, TASK_PRIO_CAMERA, NULL);
+    if (VK_BOARD_HAS_CAMERA) {
+        xTaskCreate(task_camera_stream,
+                    "camera", TASK_STACK_CAMERA,
+                    NULL, TASK_PRIO_CAMERA, NULL);
+    }
 
     /* System manager monitor — baixa prioridade, varre saúde periódica */
     xTaskCreate(task_sys_manager,
@@ -366,6 +411,7 @@ void app_main(void)
     ESP_LOGI(TAG, "============================================");
     ESP_LOGI(TAG, "  VitalKare v%s — Iniciando", APP_FIRMWARE_VERSION);
     ESP_LOGI(TAG, "  Dispositivo: %s", APP_DEFAULT_DEVICE_ID);
+    ESP_LOGI(TAG, "  Perfil de placa: %s (%s)", VK_BOARD_NAME, VK_BOARD_RUNTIME_MODE);
     ESP_LOGI(TAG, "============================================");
 
     /* 1. system_manager_init() — task_monitor + memory_monitor + mutex */
@@ -400,7 +446,9 @@ void app_main(void)
     init_hardware();
 
     /* 10. Offline journal — requer SD montado (feito em init_hardware) */
-    offline_journal_init();  /* Falha graciosamente se SD indisponível */
+    if (VK_BOARD_HAS_STORAGE) {
+        offline_journal_init();  /* Falha graciosamente se SD indisponível */
+    }
 
     /* Audio chunk pool registration disabled — audio init skipped */
 #if 0
@@ -425,7 +473,11 @@ void app_main(void)
     }
 
     /* 13. Câmera — inicializada APÓS WiFi */
-    camera_driver_init();
+    if (VK_BOARD_HAS_CAMERA) {
+        camera_driver_init();
+    } else {
+        log_feature_skip("Camera OV5640");
+    }
 
     /* 14. Criar todas as tasks */
     create_tasks();

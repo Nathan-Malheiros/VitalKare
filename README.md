@@ -159,7 +159,7 @@ Dashboard em: http://localhost:5173
 # Instale o esptool e configure IDF_PATH antes
 pip install esptool
 python firmware/tools/provision.py --port COM16
-# O script solicita SSID, senha, IP do broker, device_id e ward_id
+# O script solicita SSID, senha, IP do servidor VitalKare (TCP/HTTP), device_id e ward_id
 ```
 
 ### 5. Firmware — Flash direto (credenciais em device_config.h)
@@ -170,6 +170,81 @@ cd firmware
 idf.py set-target esp32s3
 idf.py -p COM16 -b 921600 flash monitor
 ```
+
+### 6. Perfis de placa — KIIRA V2 x ESP32-S3 DevKit
+
+O firmware agora suporta dois perfis de placa no arquivo `firmware/config/board_profile.h`:
+
+| Perfil | Objetivo | O que sobe |
+|---|---|---|
+| `VK_BOARD_PROFILE_KIIRA_V2` | Firmware completo da placa alvo | Wi-Fi, TCP, botões, sensores, oxímetro, OLED, storage, câmera |
+| `VK_BOARD_PROFILE_ESP32S3_DEVKIT` | Bancada de validação no DevKit | Wi-Fi, TCP, handshake, heartbeat, telemetria básica de sistema |
+
+Para usar o **ESP32-S3 DevKit**, altere a linha:
+
+```c
+#define VK_BOARD_PROFILE VK_BOARD_PROFILE_KIIRA_V2
+```
+
+para:
+
+```c
+#define VK_BOARD_PROFILE VK_BOARD_PROFILE_ESP32S3_DEVKIT
+```
+
+No perfil reduzido, o firmware ignora periféricos exclusivos da KIIRA e mantém o caminho útil para testes de:
+
+1. associação Wi-Fi
+2. handshake TCP com `server/server.py`
+3. heartbeat/reconexão
+4. chegada de telemetria básica no dashboard
+
+### 7. Assistente interativo para Windows
+
+Na raiz do repositório existe o script:
+
+```bat
+firmware-assistant.bat
+```
+
+Ele guia o fluxo de:
+
+1. escolha do alvo (**KIIRA V2** ou **ESP32-S3 DevKit**)
+2. seleção da porta COM
+3. `fullclean` opcional
+4. build
+5. flash
+6. abertura opcional do monitor serial
+
+Agora ele funciona como um **menu persistente**, então você pode:
+
+1. configurar alvo e COM uma vez
+2. rodar **build**, **flash**, **monitor** e **fullclean** separadamente
+3. executar um **fluxo guiado** em sequência
+4. ver o último resultado no topo da tela
+5. voltar ao menu após erro para tentar de novo, inclusive reabrindo o monitor
+
+Ele também lembra o passo de colocar a placa em **modo download/boot** antes do flash.
+
+### 8. Inicializacao do sistema e provisionamento da placa
+
+Na raiz do repositório existe outro atalho:
+
+```bat
+system-startup-assistant.bat
+```
+
+Ele abre um fluxo operacional de bancada para:
+
+1. detectar o **IP LAN** do notebook/PC
+2. atualizar `dashboard/.env.local` com esse host
+3. subir o **server** e o **dashboard**
+4. perguntar **SSID**, **senha**, porta COM e identidade da placa
+5. gravar essas informacoes na NVS da **KIIRA** ou **ESP32-S3 DevKit**
+6. opcionalmente escutar a serial e capturar o **IP obtido** pela placa
+7. registrar esse IP no backend, criar/atualizar o slot provisionado e aprovar o dispositivo para ele aparecer no dashboard publico
+
+No perfil **ESP32-S3 DevKit**, o firmware agora exige credenciais provisionadas em NVS para evitar cair silenciosamente em um SSID hardcoded incorreto de bancada.
 
 ---
 
@@ -243,6 +318,8 @@ Dashboard  :5173             (browser no mesmo PC)
 2. Edite `docker/.env` → `HOST_LAN_IP=<seu_ip>`
 3. Edite `dashboard/.env.local` → `VITE_BACKEND_HOST=<seu_ip>`
 4. Provisione o firmware: `python firmware/tools/provision.py --port COM16`
+
+> **Observação para bancada DevKit:** o firmware publica um perfil reduzido e telemetria de sistema para validar conectividade mesmo sem OLED, sensores, SD ou câmera.
 
 ---
 

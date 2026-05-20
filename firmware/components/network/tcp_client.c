@@ -24,6 +24,7 @@
 #include "command_processor.h"
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "nvs.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
@@ -32,10 +33,12 @@
 #include "lwip/sockets.h"
 #include "lwip/netdb.h"
 #include "../../config/app_config.h"
+#include "../../config/board_profile.h"
 #include "../../config/device_config.h"
 #include "../events/event_dispatcher.h"
 #include "../core/task_monitor.h"
 #include "../core/vk_assert.h"
+#include "wifi_manager.h"
 #include <string.h>
 #include <stdatomic.h>
 
@@ -72,6 +75,60 @@ static uint8_t  s_ping_misses  = 0;
 
 /* Número de sequência */
 static _Atomic uint16_t s_seq = 0;
+
+static char     s_server_host[64] = DEVICE_SERVER_HOST;
+static uint16_t s_server_port     = DEVICE_TCP_PORT;
+static char     s_device_id[sizeof(((pkt_handshake_hello_t *)0)->device_id)] = DEVICE_ID;
+static char     s_ward_id[sizeof(((pkt_handshake_hello_t *)0)->ward_id)]      = DEVICE_WARD_ID;
+
+static void load_runtime_string(nvs_handle_t nvs, const char *key, char *out, size_t out_size)
+{
+    out[0] = '\0';
+    size_t len = out_size;
+    if (nvs_get_str(nvs, key, out, &len) != ESP_OK) {
+        out[out_size - 1] = '\0';
+    }
+}
+
+static void load_runtime_config(void)
+{
+    nvs_handle_t nvs;
+    if (nvs_open(DEVICE_NVS_NAMESPACE, NVS_READONLY, &nvs) != ESP_OK) {
+        ESP_LOGI(TAG_TX, "Usando endpoint/identidade compilados em device_config.h");
+        return;
+    }
+
+    load_runtime_string(nvs, DEVICE_NVS_KEY_SERVER_HOST, s_server_host, sizeof(s_server_host));
+    if (s_server_host[0] == '\0') {
+        load_runtime_string(nvs, DEVICE_NVS_KEY_MQTT_HOST, s_server_host, sizeof(s_server_host));
+    }
+    if (s_server_host[0] == '\0') {
+        strncpy(s_server_host, DEVICE_SERVER_HOST, sizeof(s_server_host) - 1);
+        s_server_host[sizeof(s_server_host) - 1] = '\0';
+    }
+
+    uint16_t tcp_port = DEVICE_TCP_PORT;
+    if (nvs_get_u16(nvs, DEVICE_NVS_KEY_TCP_PORT, &tcp_port) == ESP_OK && tcp_port > 0) {
+        s_server_port = tcp_port;
+    }
+
+    load_runtime_string(nvs, DEVICE_NVS_KEY_DEVICE_ID, s_device_id, sizeof(s_device_id));
+    if (s_device_id[0] == '\0') {
+        strncpy(s_device_id, DEVICE_ID, sizeof(s_device_id) - 1);
+        s_device_id[sizeof(s_device_id) - 1] = '\0';
+    }
+
+    load_runtime_string(nvs, DEVICE_NVS_KEY_WARD_ID, s_ward_id, sizeof(s_ward_id));
+    if (s_ward_id[0] == '\0') {
+        strncpy(s_ward_id, DEVICE_WARD_ID, sizeof(s_ward_id) - 1);
+        s_ward_id[sizeof(s_ward_id) - 1] = '\0';
+    }
+
+    nvs_close(nvs);
+
+    ESP_LOGI(TAG_TX, "Runtime config: host=%s tcp_port=%u device_id=%s ward=%s",
+             s_server_host, (unsigned)s_server_port, s_device_id, s_ward_id);
+}
 
 /* =========================================================
  * QUEUE OWNERSHIP — s_critical_queue / s_normal_queue
@@ -296,10 +353,10 @@ static esp_err_t do_connect(void)
     };
     struct addrinfo *res = NULL;
     char port_str[8];
-    snprintf(port_str, sizeof(port_str), "%d", APP_TCP_SERVER_PORT);
+    snprintf(port_str, sizeof(port_str), "%u", (unsigned)s_server_port);
 
-    if (getaddrinfo(APP_TCP_SERVER_IP, port_str, &hints, &res) != 0 || !res) {
-        ESP_LOGE(TAG_TX, "getaddrinfo falhou para %s", APP_TCP_SERVER_IP);
+    if (getaddrinfo(s_server_host, port_str, &hints, &res) != 0 || !res) {
+        ESP_LOGE(TAG_TX, "getaddrinfo falhou para %s", s_server_host);
         atomic_store(&s_state, TCP_STATE_DISCONNECTED);
         return ESP_FAIL;
     }
@@ -334,14 +391,14 @@ static esp_err_t do_connect(void)
 
     s_sock  = sock;
     atomic_store(&s_state, TCP_STATE_CONNECTED);
-    ESP_LOGI(TAG_TX, "Socket conectado a %s:%d", APP_TCP_SERVER_IP, APP_TCP_SERVER_PORT);
+    ESP_LOGI(TAG_TX, "Socket conectado a %s:%u", s_server_host, (unsigned)s_server_port);
 
     /* Envia HELLO */
     pkt_handshake_hello_t hello = {0};
-    strncpy(hello.device_id,    APP_DEFAULT_DEVICE_ID,  sizeof(hello.device_id) - 1);
-    strncpy(hello.ward_id,      APP_DEFAULT_WARD_ID,    sizeof(hello.ward_id) - 1);
+    strncpy(hello.device_id,    s_device_id,            sizeof(hello.device_id) - 1);
+    strncpy(hello.ward_id,      s_ward_id,              sizeof(hello.ward_id) - 1);
     strncpy(hello.fw_version,   APP_FIRMWARE_VERSION,   sizeof(hello.fw_version) - 1);
-    hello.capabilities = 0x07;
+    hello.capabilities = VK_BOARD_CAPABILITIES;
 
     int flen = vk_frame_build(s_handshake_frame, sizeof(s_handshake_frame),
                               PKT_HANDSHAKE_HELLO, tcp_client_next_seq(),
@@ -372,6 +429,7 @@ esp_err_t tcp_client_init(void)
     if (!s_event_grp || !s_critical_queue || !s_normal_queue) {
         return ESP_ERR_NO_MEM;
     }
+    load_runtime_config();
     ESP_LOGI(TAG_TX, "tcp_client inicializado");
     return ESP_OK;
 }
@@ -440,7 +498,7 @@ void task_tcp_tx(void *arg)
         if (cur == TCP_STATE_ACTIVE && (now_us - s_last_ping_us) >= interval_us) {
             pkt_heartbeat_t ping = {
                 .uptime_ms = (uint32_t)(now_us / 1000),
-                .rssi      = 0,
+                .rssi      = wifi_manager_get_rssi(),
             };
             int flen = vk_frame_build(s_ping_frame, sizeof(s_ping_frame),
                                       PKT_HEARTBEAT_PING, tcp_client_next_seq(),

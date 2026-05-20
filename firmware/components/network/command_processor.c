@@ -111,7 +111,7 @@ static void handle_ota_start(const uint8_t *payload, uint32_t len)
  * ========================================================= */
 void task_command_processor(void *arg)
 {
-    tcp_queued_frame_t item;
+    static tcp_queued_frame_t item;
     ESP_LOGI(TAG, "task_command_processor iniciada");
 
     for (;;) {

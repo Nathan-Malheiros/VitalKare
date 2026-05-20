@@ -10,6 +10,8 @@
 #ifndef VITALKARE_APP_CONFIG_H
 #define VITALKARE_APP_CONFIG_H
 
+#include "device_config.h"
+
 /* =========================================================
  * IDENTIDADE DO SISTEMA
  * ========================================================= */
@@ -21,9 +23,9 @@
  * produção. Os valores abaixo são usados apenas durante desenvolvimento
  * quando NVS não está provisionada.
  */
-#define APP_DEFAULT_DEVICE_ID       "leito01"
-#define APP_DEFAULT_WARD_ID         "ala-a"
-#define APP_DEFAULT_PATIENT_ID      "PAC-000"
+#define APP_DEFAULT_DEVICE_ID       DEVICE_ID
+#define APP_DEFAULT_WARD_ID         DEVICE_WARD_ID
+#define APP_DEFAULT_PATIENT_ID      DEVICE_PATIENT_ID
 
 /* =========================================================
  * TASKS FREERTOS — PRIORIDADES E STACKS
@@ -52,7 +54,7 @@
 #define TASK_STACK_BUTTONS          3072
 #define TASK_STACK_AUDIO_CTRL       4096
 #define TASK_STACK_AUDIO_ENC        8192
-#define TASK_STACK_CMD_PROC         4096
+#define TASK_STACK_CMD_PROC         6144
 #define TASK_STACK_SENSORS          4096
 #define TASK_STACK_CAMERA           32768
 #define TASK_STACK_DISPLAY          4096
@@ -104,8 +106,8 @@
 /* =========================================================
  * TCP CLIENT — PROTOCOLO PERSISTENTE
  * ========================================================= */
-#define APP_TCP_SERVER_IP           "192.168.1.119"
-#define APP_TCP_SERVER_PORT         7890
+#define APP_TCP_SERVER_IP           DEVICE_SERVER_HOST
+#define APP_TCP_SERVER_PORT         DEVICE_TCP_PORT
 #define APP_TCP_CONNECT_TIMEOUT_MS  5000
 #define APP_TCP_RECV_TIMEOUT_MS     100         /**< recv non-blocking tick */
 #define APP_TCP_HEARTBEAT_INTERVAL_MS  15000    /**< Heartbeat a cada 15 s */
@@ -130,8 +132,13 @@
 /* =========================================================
  * HTTP REST (legado — usado durante migração)
  * ========================================================= */
-#define APP_HTTP_BASE_URL           "http://192.168.1.100:8000"
+#define APP_HTTP_BASE_URL           DEVICE_HTTP_BASE_URL
 #define APP_HTTP_CONNECT_TIMEOUT_MS APP_WIFI_CONNECT_TIMEOUT_MS
+
+/* =========================================================
+ * TELEMETRIA DE SISTEMA
+ * ========================================================= */
+#define APP_SYSTEM_TELEMETRY_INTERVAL_MS 15000
 
 /* =========================================================
  * CÂMERA

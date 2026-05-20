@@ -1,4 +1,3 @@
--specs=picolibc.specs
 -mlongcalls
 -fno-builtin-memcpy
 -fno-builtin-memset

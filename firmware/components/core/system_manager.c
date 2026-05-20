@@ -31,6 +31,7 @@
 #include "../events/event_dispatcher.h"
 #include "../network/wifi_manager.h"
 #include "../network/tcp_client.h"
+#include "../network/vk_protocol.h"
 #include "../audio/audio_capture.h"
 #include "../audio/audio_encoder.h"
 #include "../storage/sd_manager.h"
@@ -40,6 +41,7 @@
 #include "../sensors/hdc1080.h"
 #include "../sensors/mpu6050.h"
 #include "../display/oled_driver.h"
+#include "../../config/app_config.h"
 
 #include "esp_log.h"
 #include "esp_timer.h"
@@ -64,10 +66,36 @@ static _Atomic uint32_t s_dropped_packets = 0;
 static _Atomic uint32_t s_audio_overruns  = 0;
 static _Atomic uint32_t s_reconnect_count = 0;
 static _Atomic uint32_t s_alloc_failures  = 0;
+static int64_t          s_last_telemetry_us = 0;
 
 #define MONITOR_INTERVAL_MS   5000U
 #define SHUTDOWN_WAIT_AUDIO_MS 3000U
 #define SHUTDOWN_WAIT_TCP_MS   2000U
+
+static void publish_system_telemetry(void)
+{
+    if (!tcp_client_is_connected()) {
+        return;
+    }
+
+    memory_snapshot_t mem = {0};
+    memory_monitor_get_snapshot(&mem);
+
+    pkt_telemetry_system_t pkt = {
+        .uptime_ms       = system_manager_get_uptime_sec() * 1000U,
+        .rssi            = wifi_manager_get_rssi(),
+        .padding         = {0, 0, 0},
+        .free_heap_bytes = mem.heap_free_bytes,
+    };
+
+    uint8_t frame[VK_HEADER_SIZE + sizeof(pkt_telemetry_system_t) + VK_CRC_SIZE];
+    int flen = vk_frame_build(frame, sizeof(frame),
+                              PKT_TELEMETRY_SYSTEM, tcp_client_next_seq(),
+                              &pkt, sizeof(pkt));
+    if (flen > 0 && !tcp_client_send_normal(frame, (uint16_t)flen)) {
+        ESP_LOGD(TAG, "Telemetria de sistema descartada — TCP indisponivel");
+    }
+}
 
 /* =========================================================
  * INICIALIZAÇÃO
@@ -357,6 +385,13 @@ void task_sys_manager(void *arg)
                  (unsigned long)mem.heap_free_bytes,
                  (unsigned long)mem.psram_free_bytes,
                  faulted_count);
+
+        int64_t now_us = esp_timer_get_time();
+        if ((now_us - s_last_telemetry_us)
+            >= ((int64_t)APP_SYSTEM_TELEMETRY_INTERVAL_MS * 1000LL)) {
+            publish_system_telemetry();
+            s_last_telemetry_us = now_us;
+        }
 
         vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(MONITOR_INTERVAL_MS));
     }

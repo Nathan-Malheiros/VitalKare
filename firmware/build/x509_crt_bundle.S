@@ -1,4 +1,4 @@
-/* * Data converted from C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/esp-idf/mbedtls/x509_crt_bundle
+/* * Data converted from C:/Users/natha/OneDrive/Documentos/VitalKare/firmware/build/esp-idf/mbedtls/x509_crt_bundle
  */
 .data
 #if !defined (__APPLE__) && !defined (__linux__)

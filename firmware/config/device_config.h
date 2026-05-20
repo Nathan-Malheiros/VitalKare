@@ -13,6 +13,19 @@
 #define VITALKARE_DEVICE_CONFIG_H
 
 /* =========================================================
+ * NVS — namespace e chaves persistidas por provision.py
+ * ========================================================= */
+#define DEVICE_NVS_NAMESPACE       "vitalkare"
+#define DEVICE_NVS_KEY_WIFI_SSID   "ssid"
+#define DEVICE_NVS_KEY_WIFI_PASS   "pass"
+#define DEVICE_NVS_KEY_SERVER_HOST "server_host"
+#define DEVICE_NVS_KEY_TCP_PORT    "tcp_port"
+#define DEVICE_NVS_KEY_DEVICE_ID   "device_id"
+#define DEVICE_NVS_KEY_WARD_ID     "ward_id"
+#define DEVICE_NVS_KEY_PATIENT_ID  "patient_id"
+#define DEVICE_NVS_KEY_MQTT_HOST   "mqtt_host"   /* legado */
+
+/* =========================================================
  * REDE Wi-Fi LOCAL
  * ========================================================= */
 /** SSID da rede Wi-Fi onde o dashboard e as placas operam */
@@ -21,13 +34,18 @@
 #define DEVICE_WIFI_PASS        "code2020"
 
 /* =========================================================
- * BROKER MQTT (IP do notebook/servidor na LAN)
+ * SERVIDOR VITALKARE (notebook/servidor na LAN)
  *
  * Execute no notebook:
  *   - Windows: ipconfig  (procure "Endereço IPv4" da sua interface Wi-Fi)
  *   - Linux:   ip -4 addr show
  * ========================================================= */
-#define DEVICE_MQTT_HOST        "192.168.1.100"
+#define DEVICE_SERVER_HOST      "192.168.1.100"
+#define DEVICE_TCP_PORT         7890
+#define DEVICE_HTTP_BASE_URL    "http://192.168.1.100:8000"
+
+/* Compatibilidade com nomes legados ainda usados na documentação antiga */
+#define DEVICE_MQTT_HOST        DEVICE_SERVER_HOST
 #define DEVICE_MQTT_PORT        1883
 
 /* =========================================================

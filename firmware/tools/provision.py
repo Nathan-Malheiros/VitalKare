@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-provision.py — Grava credenciais WiFi/MQTT na partição NVS do ESP32-S3
+provision.py — Grava credenciais WiFi/servidor na partição NVS do ESP32-S3
 
 Uso:
     python provision.py --port COM16
@@ -12,12 +12,11 @@ Dependências:
 """
 
 import argparse
+import csv
 import os
-import struct
 import subprocess
 import sys
 import tempfile
-import csv
 
 # ─────────────────────────────────────────────
 # Utilitários de prompt
@@ -50,30 +49,68 @@ def ask_int(prompt: str, default: int) -> int:
 # Coleta de parâmetros
 # ─────────────────────────────────────────────
 
-def collect_params() -> dict:
+def ask_or_value(
+    label: str,
+    value: str | None,
+    default: str = "",
+    *,
+    non_interactive: bool = False,
+    required: bool = False,
+) -> str:
+    if value is not None:
+        return value
+    if non_interactive:
+        if default:
+            return default
+        if required:
+            raise SystemExit(f"Campo obrigatório ausente em modo não interativo: {label}")
+        return ""
+    return ask(label, default)
+
+
+def ask_int_or_value(
+    label: str,
+    value: int | None,
+    default: int,
+    *,
+    non_interactive: bool = False,
+) -> int:
+    if value is not None:
+        return value
+    if non_interactive:
+        return default
+    return ask_int(label, default)
+
+
+def collect_params(args: argparse.Namespace) -> dict:
     print("\n╔══════════════════════════════════════╗")
     print("║  VitalKare — Provisionamento NVS     ║")
     print("╚══════════════════════════════════════╝\n")
 
     print("[ Wi-Fi ]")
-    ssid = ask("SSID da rede Wi-Fi")
-    wifi_pass = ask("Senha da rede Wi-Fi")
+    ssid = ask_or_value("SSID da rede Wi-Fi", args.ssid, non_interactive=args.non_interactive, required=True)
+    wifi_pass = ask_or_value("Senha da rede Wi-Fi", args.wifi_pass, non_interactive=args.non_interactive, required=True)
 
-    print("\n[ MQTT Broker ]")
-    mqtt_host = ask("IP do broker MQTT (notebook na LAN)", "192.168.1.100")
-    mqtt_port = ask_int("Porta MQTT", 1883)
-    mqtt_user = ask("Usuário MQTT", "vitalkare")
-    mqtt_pass = ask("Senha MQTT", "vitalkare_mqtt")
+    print("\n[ Servidor VitalKare ]")
+    server_host = ask_or_value("IP do servidor VitalKare (TCP/HTTP)", args.server_host, "192.168.1.100", non_interactive=args.non_interactive)
+    tcp_port = ask_int_or_value("Porta TCP do servidor", args.tcp_port, 7890, non_interactive=args.non_interactive)
+
+    print("\n[ Compatibilidade MQTT legada ]")
+    mqtt_port = ask_int_or_value("Porta MQTT", args.mqtt_port, 1883, non_interactive=args.non_interactive)
+    mqtt_user = ask_or_value("Usuário MQTT", args.mqtt_user, "vitalkare", non_interactive=args.non_interactive)
+    mqtt_pass = ask_or_value("Senha MQTT", args.mqtt_pass, "vitalkare_mqtt", non_interactive=args.non_interactive)
 
     print("\n[ Dispositivo ]")
-    device_id = ask("ID do dispositivo (ex: leito01)", "leito01")
-    ward_id   = ask("ID da ala (ex: ala-a)", "ala-a")
-    patient_id = ask("ID do paciente (ex: PAC-000)", "PAC-000")
+    device_id = ask_or_value("ID do dispositivo (ex: leito01)", args.device_id, "leito01", non_interactive=args.non_interactive)
+    ward_id = ask_or_value("ID da ala (ex: ala-a)", args.ward_id, "ala-a", non_interactive=args.non_interactive)
+    patient_id = ask_or_value("ID do paciente (ex: PAC-000)", args.patient_id, "PAC-000", non_interactive=args.non_interactive)
 
     return {
         "ssid":       ssid,
         "pass":       wifi_pass,
-        "mqtt_host":  mqtt_host,
+        "server_host": server_host,
+        "tcp_port":   str(tcp_port),
+        "mqtt_host":  server_host,
         "mqtt_port":  str(mqtt_port),
         "mqtt_user":  mqtt_user,
         "mqtt_pass":  mqtt_pass,
@@ -99,7 +136,10 @@ def write_nvs_csv(params: dict, csv_path: str) -> None:
         # wifi
         ["ssid",        "data",      "string", NVS_NAMESPACE, params["ssid"]],
         ["pass",        "data",      "string", NVS_NAMESPACE, params["pass"]],
-        # mqtt
+        # servidor
+        ["server_host", "data",      "string", NVS_NAMESPACE, params["server_host"]],
+        ["tcp_port",    "data",      "u16",    NVS_NAMESPACE, params["tcp_port"]],
+        # legado MQTT
         ["mqtt_host",   "data",      "string", NVS_NAMESPACE, params["mqtt_host"]],
         ["mqtt_port",   "data",      "u16",    NVS_NAMESPACE, params["mqtt_port"]],
         ["mqtt_user",   "data",      "string", NVS_NAMESPACE, params["mqtt_user"]],
@@ -190,11 +230,23 @@ def main():
     parser = argparse.ArgumentParser(description="VitalKare — Provisioning NVS")
     parser.add_argument("--port", default="COM16", help="Porta serial (default: COM16)")
     parser.add_argument("--baud", type=int, default=460800, help="Baud rate (default: 460800)")
+    parser.add_argument("--ssid", help="SSID da rede Wi-Fi")
+    parser.add_argument("--wifi-pass", dest="wifi_pass", help="Senha da rede Wi-Fi")
+    parser.add_argument("--server-host", help="IP/host do servidor VitalKare")
+    parser.add_argument("--tcp-port", type=int, help="Porta TCP do servidor")
+    parser.add_argument("--mqtt-port", type=int, help="Porta MQTT legada")
+    parser.add_argument("--mqtt-user", help="Usuário MQTT legado")
+    parser.add_argument("--mqtt-pass", help="Senha MQTT legada")
+    parser.add_argument("--device-id", help="ID do dispositivo")
+    parser.add_argument("--ward-id", help="ID da ala")
+    parser.add_argument("--patient-id", help="ID do paciente")
+    parser.add_argument("--non-interactive", action="store_true",
+                        help="Usa defaults para campos opcionais sem abrir prompts")
     parser.add_argument("--dry-run", action="store_true",
                         help="Gera CSV e BIN sem fazer o flash")
     args = parser.parse_args()
 
-    params = collect_params()
+    params = collect_params(args)
 
     with tempfile.TemporaryDirectory() as tmpdir:
         csv_path = os.path.join(tmpdir, "nvs_data.csv")

@@ -2,7 +2,7 @@
  * @file wifi_manager.c
  * @brief Gerenciamento Wi-Fi com reconexão automática por backoff exponencial
  *
- * Lê SSID e senha da partição NVS (chave "wifi_ssid" / "wifi_pass").
+ * Lê SSID e senha da partição NVS provisionada pelo projeto.
  * Fallback para valores hardcoded apenas em modo de desenvolvimento.
  */
 
@@ -13,10 +13,12 @@
 #include "esp_event.h"
 #include "esp_netif.h"
 #include "esp_timer.h"
+#include "nvs.h"
 #include "nvs_flash.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "../../config/app_config.h"
+#include "../../config/board_profile.h"
 #include "../events/event_dispatcher.h"
 #include <string.h>
 
@@ -36,6 +38,25 @@ static uint32_t             s_retry_count       = 0;
  * TIMER DE RECONEXÃO — evita vTaskDelay dentro de event handler
  * ========================================================= */
 static esp_timer_handle_t s_retry_timer = NULL;
+
+static bool load_wifi_credentials_from_namespace(const char *ns,
+                                                 char *ssid, size_t ssid_size,
+                                                 char *pass, size_t pass_size)
+{
+    nvs_handle_t nvs;
+    size_t ssid_len = ssid_size;
+    size_t pass_len = pass_size;
+
+    if (nvs_open(ns, NVS_READONLY, &nvs) != ESP_OK) {
+        return false;
+    }
+
+    esp_err_t ssid_ret = nvs_get_str(nvs, DEVICE_NVS_KEY_WIFI_SSID, ssid, &ssid_len);
+    esp_err_t pass_ret = nvs_get_str(nvs, DEVICE_NVS_KEY_WIFI_PASS, pass, &pass_len);
+    nvs_close(nvs);
+
+    return ssid_ret == ESP_OK && pass_ret == ESP_OK && ssid[0] != '\0';
+}
 
 static void reconnect_timer_cb(void *arg)
 {
@@ -81,6 +102,7 @@ static void on_wifi_event(void *arg, esp_event_base_t base,
         esp_wifi_connect();
 
     } else if (id == WIFI_EVENT_STA_DISCONNECTED) {
+        wifi_event_sta_disconnected_t *event = (wifi_event_sta_disconnected_t *)data;
         s_connected = false;
         s_rssi = 0;
 
@@ -94,7 +116,8 @@ static void on_wifi_event(void *arg, esp_event_base_t base,
         }
         s_retry_count++;
 
-        ESP_LOGW(TAG, "Wi-Fi desconectado. Tentativa %lu em %lu ms",
+        ESP_LOGW(TAG, "Wi-Fi desconectado (reason=%u). Tentativa %lu em %lu ms",
+                 event ? (unsigned)event->reason : 0u,
                  s_retry_count, delay_ms);
 
         /* Publica evento de desconexão */
@@ -160,21 +183,22 @@ esp_err_t wifi_manager_init(void)
     ESP_ERROR_CHECK(esp_event_handler_instance_register(
         IP_EVENT, IP_EVENT_STA_GOT_IP, on_ip_event, NULL, NULL));
 
-    /* Lê credenciais da NVS */
-    nvs_handle_t nvs;
     char ssid[64] = {0};
     char pass[64] = {0};
-    size_t ssid_len = sizeof(ssid);
-    size_t pass_len = sizeof(pass);
+    bool loaded_from_nvs =
+        load_wifi_credentials_from_namespace(DEVICE_NVS_NAMESPACE,
+                                             ssid, sizeof(ssid),
+                                             pass, sizeof(pass))
+        || load_wifi_credentials_from_namespace("wifi_cfg",
+                                                ssid, sizeof(ssid),
+                                                pass, sizeof(pass));
 
-    if (nvs_open("wifi_cfg", NVS_READONLY, &nvs) == ESP_OK) {
-        nvs_get_str(nvs, "ssid", ssid, &ssid_len);
-        nvs_get_str(nvs, "pass", pass, &pass_len);
-        nvs_close(nvs);
-    }
+    if (!loaded_from_nvs || strlen(ssid) == 0) {
+        if (VK_BOARD_PROFILE == VK_BOARD_PROFILE_ESP32S3_DEVKIT) {
+            ESP_LOGW(TAG, "NVS vazia no perfil DevKit — provisione SSID/senha via provision.py ou system-startup-assistant.bat");
+            return ESP_ERR_NOT_FOUND;
+        }
 
-
-    if (strlen(ssid) == 0) {
         /* Fallback para credenciais compiladas em device_config.h */
         if (DEVICE_WIFI_SSID[0] != '\0') {
             ESP_LOGW(TAG, "NVS vazia — usando credenciais de device_config.h (%s)", DEVICE_WIFI_SSID);
@@ -203,9 +227,9 @@ esp_err_t wifi_manager_init(void)
             }
             // Salva na NVS
             nvs_handle_t nvs;
-            if (nvs_open("wifi_cfg", NVS_READWRITE, &nvs) == ESP_OK) {
-                nvs_set_str(nvs, "ssid", ssid);
-                nvs_set_str(nvs, "pass", pass);
+            if (nvs_open(DEVICE_NVS_NAMESPACE, NVS_READWRITE, &nvs) == ESP_OK) {
+                nvs_set_str(nvs, DEVICE_NVS_KEY_WIFI_SSID, ssid);
+                nvs_set_str(nvs, DEVICE_NVS_KEY_WIFI_PASS, pass);
                 nvs_commit(nvs);
                 nvs_close(nvs);
                 printf("\nCredenciais salvas! Reinicie o dispositivo para conectar ao Wi-Fi.\n");

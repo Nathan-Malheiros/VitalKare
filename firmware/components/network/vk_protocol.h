@@ -169,6 +169,13 @@ typedef struct {
     uint32_t timestamp_ms;
 } pkt_telemetry_oximeter_t;
 
+typedef struct {
+    uint32_t uptime_ms;
+    int8_t   rssi;
+    uint8_t  padding[3];
+    uint32_t free_heap_bytes;
+} pkt_telemetry_system_t;
+
 #pragma pack(pop)
 
 /* =========================================================

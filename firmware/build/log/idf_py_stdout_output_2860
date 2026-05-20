@@ -1,0 +1,352 @@
+Command: C:\Users\natha\.espressif\python_env\idf6.0_py3.14_env\Scripts\python.exe C:\esp\v6.0.1\esp-idf\tools/idf_monitor.py -p COM8 -b 115200 --toolchain-prefix xtensa-esp32s3-elf- --target esp32s3 --revision 0 C:\Users\natha\OneDrive\Documentos\VitalKare\firmware\build\vitalkare-firmware.elf C:\Users\natha\OneDrive\Documentos\VitalKare\firmware\build\bootloader\bootloader.elf --force-color -m 'C:\Users\natha\.espressif\python_env\idf6.0_py3.14_env\Scripts\python.exe' 'C:\esp\v6.0.1\esp-idf\tools\idf.py' '-p' 'COM8'
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0xb (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037bbca
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x14f0
+load:0x403c8700,len:0xda0
+load:0x403cb700,len:0x2f58
+entry 0x403c8908
+[0;32mI (24) boot: ESP-IDF v6.0 2nd stage bootloader[0m
+[0;32mI (24) boot: compile time May 18 2026 11:48:56[0m
+[0;32mI (25) boot: Multicore bootloader[0m
+[0;32mI (25) boot: chip revision: v0.2[0m
+[0;32mI (27) boot: efuse block revision: v1.3[0m
+[0;32mI (31) boot.esp32s3: Boot SPI Speed : 80MHz[0m
+[0;32mI (35) boot.esp32s3: SPI Mode       : DIO[0m
+[0;32mI (39) boot.esp32s3: SPI Flash Size : 8MB[0m
+[0;32mI (42) boot: Enabling RNG early entropy source...[0m
+[0;32mI (47) boot: Partition Table:[0m
+[0;32mI (49) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (56) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (62) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (69) boot:  2 factory          factory app      00 00 00010000 00300000[0m
+[0;32mI (75) boot:  3 ota_0            OTA app          00 10 00310000 00300000[0m
+[0;32mI (82) boot:  4 ota_data         OTA data         01 00 00610000 00002000[0m
+[0;32mI (88) boot:  5 spiffs           Unknown data     01 82 00612000 001ee000[0m
+[0;32mI (95) boot: End of partition table[0m
+[0;32mI (98) boot: Defaulting to factory image[0m
+[0;32mI (102) esp_image: segment 0: paddr=00010020 vaddr=3c0c0020 size=2d274h (184948) map[0m
+[0;32mI (142) esp_image: segment 1: paddr=0003d29c vaddr=3fc99e00 size=02d7ch ( 11644) load[0m
+[0;32mI (145) esp_image: segment 2: paddr=00040020 vaddr=42000020 size=b5d0ch (744716) map[0m
+[0;32mI (280) esp_image: segment 3: paddr=000f5d34 vaddr=3fc9cb7c size=0500ch ( 20492) load[0m
+[0;32mI (284) esp_image: segment 4: paddr=000fad48 vaddr=40374000 size=15db0h ( 89520) load[0m
+[0;32mI (304) esp_image: segment 5: paddr=00110b00 vaddr=50000000 size=00024h (    36) load[0m
+[0;32mI (315) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (315) boot: Disabling RNG early entropy source...[0m
+[0;32mI (326) octal_psram: vendor id    : 0x0d (AP)[0m
+[0;32mI (326) octal_psram: dev id       : 0x02 (generation 3)[0m
+[0;32mI (326) octal_psram: density      : 0x03 (64 Mbit)[0m
+[0;32mI (328) octal_psram: good-die     : 0x01 (Pass)[0m
+[0;32mI (332) octal_psram: Latency      : 0x01 (Fixed)[0m
+[0;32mI (337) octal_psram: VCC          : 0x01 (3V)[0m
+[0;32mI (341) octal_psram: SRF          : 0x01 (Fast Refresh)[0m
+[0;32mI (346) octal_psram: BurstType    : 0x01 (Hybrid Wrap)[0m
+[0;32mI (351) octal_psram: BurstLen     : 0x01 (32 Byte)[0m
+[0;32mI (355) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)[0m
+[0;32mI (360) octal_psram: DriveStrength: 0x00 (1/1)[0m
+[0;32mI (365) MSPI Timing: Enter psram timing tuning[0m
+[0;32mI (369) esp_psram: Found 8MB PSRAM device[0m
+[0;32mI (372) esp_psram: Speed: 80MHz[0m
+[0;32mI (395) mmu_psram: Read only data copied and mapped to SPIRAM[0m
+[0;32mI (476) mmu_psram: Instructions copied and mapped to SPIRAM[0m
+[0;32mI (477) cpu_start: Multicore app[0m
+[0;32mI (859) esp_psram: SPI SRAM memory test OK[0m
+[0;32mI (867) cpu_start: GPIO 44 and 43 are used as console UART I/O pins[0m
+[0;32mI (868) cpu_start: Pro cpu start user code[0m
+[0;32mI (868) cpu_start: cpu freq: 160000000 Hz[0m
+[0;32mI (869) app_init: Application information:[0m
+[0;32mI (873) app_init: Project name:     vitalkare-firmware[0m
+[0;32mI (878) app_init: App version:      8b0d226a-dirty[0m
+[0;32mI (883) app_init: Compile time:     May 20 2026 13:32:44[0m
+[0;32mI (888) app_init: ELF file SHA256:  4f0c5341f...[0m
+[0;32mI (892) app_init: ESP-IDF:          v6.0[0m
+[0;32mI (896) efuse_init: Min chip rev:     v0.0[0m
+[0;32mI (900) efuse_init: Max chip rev:     v0.99 [0m
+[0;32mI (903) efuse_init: Chip rev:         v0.2[0m
+[0;32mI (907) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (914) heap_init: At 3FCD0920 len 00018DF0 (99 KiB): RAM[0m
+[0;32mI (919) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM[0m
+[0;32mI (924) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM[0m
+[0;32mI (929) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM[0m
+[0;32mI (934) esp_psram: Adding pool of 7232K of PSRAM memory to heap allocator[0m
+[0;32mI (941) esp_psram: Adding pool of 11K of PSRAM memory gap generated due to end address alignment of drom to the heap allocator[0m
+[0;32mI (952) spi_flash: detected chip: boya[0m
+[0;32mI (955) spi_flash: flash io: dio[0m
+[0;33mW (958) spi_flash: Detected size(16384k) larger than the size in the binary image header(8192k). Using the size in the binary image header.[0m
+[0;32mI (971) sleep_gpio: Configure to isolate all GPIO pins in sleep state[0m
+[0;32mI (977) sleep_gpio: Enable automatic switching of GPIO sleep configuration[0m
+[0;32mI (984) main_task: Started on CPU0[0m
+[0;32mI (987) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations[0m
+[0;32mI (995) main_task: Calling app_main()[0m
+[0;32mI (998) MAIN: ============================================[0m
+[0;32mI (1003) MAIN:   VitalKare v1.0.0 — Iniciando[0m
+[0;32mI (1007) MAIN:   Dispositivo: leito01[0m
+[0;32mI (1011) MAIN: ============================================[0m
+[0;32mI (1016) TASK_MON: Inicializado (9 tasks monitoradas)[0m
+[0;32mI (1021) MEM_MON: Inicializado[0m
+[0;32mI (1024) SYS_MGR: system_manager inicializado[0m
+[0;32mI (1041) CORE: Core inicializado — device_id=leito01 ward=ala-a fw=1.0.0[0m
+[0;33mW (1041) LOG_WRITER: SD não disponível — logs apenas via serial[0m
+[0;32mI (1043) EVENTS: Event dispatcher inicializado (critical=8, normal=32)[0m
+[0;32mI (1049) TCP_TX: tcp_client inicializado[0m
+[0;32mI (1053) CMD_PROC: command_processor inicializado[0m
+[0;32mI (1057) VK_REL: Inicializado (tabela=8 slots)[0m
+[0;32mI (1061) MAIN: === Hardware Init Start ===[0m
+[1;31mE (1095) sdmmc_common: sdmmc_init_ocr: send_op_cond (1) returned 0x107[0m
+[1;31mE (1095) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).[0m
+[1;31mE (1095) vfs_fat_sdmmc: esp_vfs_fat_sdmmc_sdcard_init failed (0x107).[0m
+[1;31mE (1101) SD: SD não encontrado: ESP_ERR_TIMEOUT[0m
+[0;33mW (1105) MAIN:   [FAIL] SD Card — operacao sem storage local[0m
+[0;32mI (1111) I2C_BUS: I2C master bus inicializado (port=0 SDA=GPIO14 SCL=GPIO21)[0m
+[1;31mE (1128) OLED: SSD1306 init cmd 0xAE falhou: ESP_ERR_INVALID_RESPONSE[0m
+[0;33mW (1128) MAIN:   [FAIL] OLED — display desativado[0m
+[0;32mI (1128) HDC1080: HDC1080 inicializado (I2C addr=0x40)[0m
+[0;32mI (1133) MAIN:   [PASS] HDC1080 (temp/humidity)[0m
+[0;33mW (1138) MPU6050: MPU6050/6500 não detectado (WHO_AM_I=0x34)[0m
+[0;33mW (1143) MAIN:   [FAIL] MPU6050 err=ESP_ERR_INVALID_RESPONSE[0m
+[0;32mI (1149) LDR: LDR inicializado (ADC1 CH0, cal=sim)[0m
+[0;32mI (1153) MAIN:   [PASS] LDR (ambient light)[0m
+[1;31mE (1157) MAX30102: Falha ao ler Part ID: ESP_ERR_INVALID_RESPONSE[0m
+[0;33mW (1163) MAIN:   [FAIL] MAX30102 — oximetro desativado[0m
+[0;32mI (1168) BUTTONS: Botoes inicializados (A=GPIO45, B=GPIO46) — ANYEDGE[0m
+[0;32mI (1174) MAIN:   [PASS] Button handler (GPIO 45, 46)[0m
+[0;33mW (1179) MAIN:   [SKIP] Audio disabled — GPIO37/PSRAM conflict[0m
+[0;32mI (1184) MAIN: === Hardware Init DEGRADED | Heap: 7476108 B | PSRAM: 69383 B ===[0m
+[0;33mW (1192) JRNL: SD não montado — journal indisponível[0m
+[0;32mI (1197) CORE: Estado: BOOT → WIFI_CONNECTING[0m
+[0;32mI (1202) pp: pp rom version: e7ae62f[0m
+[0;32mI (1204) net80211: net80211 rom version: e7ae62f[0m
+[0;32mI (1210) wifi:wifi driver task: 3fcee78c, prio:23, stack:6656, core=0[0m
+[0;32mI (1224) wifi:wifi firmware version: 44738b4[0m
+[0;32mI (1224) wifi:wifi certification version: v7.0[0m
+[0;32mI (1225) wifi:config NVS flash: enabled[0m
+[0;32mI (1226) wifi:config nano formatting: disabled[0m
+[0;32mI (1231) wifi:Init data frame dynamic rx buffer num: 32[0m
+[0;32mI (1236) wifi:Init static rx mgmt buffer num: 5[0m
+[0;32mI (1240) wifi:Init management short buffer num: 32[0m
+[0;32mI (1244) wifi:Init dynamic tx buffer num: 32[0m
+[0;32mI (1248) wifi:Init static tx FG buffer num: 2[0m
+[0;32mI (1252) wifi:Init static rx buffer size: 1600[0m
+[0;32mI (1257) wifi:Init static rx buffer num: 10[0m
+[0;32mI (1260) wifi:Init dynamic rx buffer num: 32[0m
+[0;32mI (1265) wifi_init: rx ba win: 6[0m
+[0;32mI (1267) wifi_init: accept mbox: 6[0m
+[0;32mI (1270) wifi_init: tcpip mbox: 32[0m
+[0;32mI (1274) wifi_init: udp mbox: 6[0m
+[0;32mI (1276) wifi_init: tcp mbox: 6[0m
+[0;32mI (1279) wifi_init: tcp tx win: 5760[0m
+[0;32mI (1283) wifi_init: tcp rx win: 5760[0m
+[0;32mI (1286) wifi_init: tcp mss: 1440[0m
+[0;32mI (1289) wifi_init: WiFi IRAM OP enabled[0m
+[0;32mI (1293) wifi_init: WiFi RX IRAM OP enabled[0m
+[0;33mW (1297) WIFI: NVS vazia — usando credenciais de device_config.h (ITSelf)[0m
+[0;32mI (1304) phy_init: phy_version 711,97bcf0a2,Aug 25 2025,19:04:10[0m
+[0;32mI (1346) wifi:mode : sta (dc:b4:d9:17:12:dc)[0m
+[0;32mI (1346) wifi:enable tsf[0m
+[0;32mI (1348) WIFI: Wi-Fi iniciado. Conectando a 'ITSelf'...[0m
+[0;32mI (1349) s3 ll_cam: DMA Channel=0[0m
+[0;32mI (1350) cam_hal: cam init ok[0m
+[0;32mI (1352) sccb-ng: pin_sda 4 pin_scl 5[0m
+[0;32mI (1355) sccb-ng: sccb_i2c_port=1[0m
+[1;31mE (1371) camera: Detected camera not supported.[0m
+[1;31mE (1371) camera: Camera probe failed with error 0x106(ESP_ERR_NOT_SUPPORTED)[0m
+[0;33mW (1372) CAMERA: esp_camera_init: ESP_ERR_NOT_SUPPORTED[0m
+[0;32mI (1376) WDT: task_watchdog iniciada (prio=6)[0m
+[0;32mI (1380) WDT: HW WDT configurado (timeout=30000 ms, panic=true)[0m
+[0;32mI (1386) EVENTS: task_event_dispatcher iniciada (dual-queue)[0m
+[0;32mI (1391) BUTTONS: task_button_handler iniciada[0m
+[0;32mI (1396) SENSORS: Task sensor_poll iniciada[0m
+[0;32mI (1400) MAX30102: task_oximeter_poll iniciada[0m
+[1;31mE (1400) HDC1080: Falha ao apontar registrador de temperatura: ESP_ERR_INVALID_RESPONSE[0m
+[0;32mI (1404) UI: Task display_update iniciada[0m
+[0;33mW (1411) SENSORS: HDC1080: leitura inválida[0m
+[1;31mE (1416) UI: OLED init falhou — task encerrada[0m
+[0;32mI (1419) SENSORS: T=0.0°C H=0.0% Lux=837 Motion=0 Postura=Desconhecido[0m
+[0;32mI (1404) MAIN: Tasks criadas. Heap livre: 7413784 bytes[0m
+[0;32mI (1435) MAIN: Inicializacao concluida. Scheduler ativo.[0m
+[0;32mI (1440) main_task: Returned from app_main()[0m
+[0;32mI (1405) VK_REL: task_vk_reliability iniciada[0m
+[0;33mW (2404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (3404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (3756) WIFI: Wi-Fi desconectado. Tentativa 1 em 2000 ms[0m
+[0;33mW (3760) MAIN: Wi-Fi desconectado — modo offline[0m
+[0;32mI (3760) CORE: Estado: WIFI_CONNECTING → OFFLINE[0m
+[0;33mW (4404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (5404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;32mI (5757) WIFI: Timer de reconexao disparado — chamando esp_wifi_connect()[0m
+[0;33mW (6404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (7404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (8165) WIFI: Wi-Fi desconectado. Tentativa 2 em 4000 ms[0m
+[0;33mW (8170) MAIN: Wi-Fi desconectado — modo offline[0m
+[0;33mW (8404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (9404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (10404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (11404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;32mI (12166) WIFI: Timer de reconexao disparado — chamando esp_wifi_connect()[0m
+[0;33mW (12404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (13404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (14404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (14575) WIFI: Wi-Fi desconectado. Tentativa 3 em 8000 ms[0m
+[0;33mW (14580) MAIN: Wi-Fi desconectado — modo offline[0m
+[0;33mW (15404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (16404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (17404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (18404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (19404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (20404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (21404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (22404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;32mI (22575) WIFI: Timer de reconexao disparado — chamando esp_wifi_connect()[0m
+[0;33mW (23404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (24404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (24984) WIFI: Wi-Fi desconectado. Tentativa 4 em 16000 ms[0m
+[0;33mW (24990) MAIN: Wi-Fi desconectado — modo offline[0m
+[0;33mW (25404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (26404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (27404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (28404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (29404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (30404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[1;31mE (31399) HDC1080: Falha ao apontar registrador de temperatura: ESP_ERR_INVALID_RESPONSE[0m
+[0;33mW (31399) SENSORS: HDC1080: leitura inválida[0m
+[0;32mI (31400) SENSORS: T=0.0°C H=0.0% Lux=987 Motion=0 Postura=Desconhecido[0m
+[0;33mW (31404) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (32411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (33411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (34411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (35411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (36411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (37411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (38411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (39411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (40411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;32mI (40984) WIFI: Timer de reconexao disparado — chamando esp_wifi_connect()[0m
+[0;33mW (41411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (42411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (43393) WIFI: Wi-Fi desconectado. Tentativa 5 em 32000 ms[0m
+[0;33mW (43396) MAIN: Wi-Fi desconectado — modo offline[0m
+[0;33mW (43411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (44411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (45411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (46411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (47411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (48411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (49411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (50411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (51411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (52411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (53411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (54411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (55411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (56411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (57411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (58411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (59411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (60411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[1;31mE (61399) HDC1080: Falha ao apontar registrador de temperatura: ESP_ERR_INVALID_RESPONSE[0m
+[0;33mW (61399) SENSORS: HDC1080: leitura inválida[0m
+[0;32mI (61400) SENSORS: T=0.0°C H=0.0% Lux=988 Motion=0 Postura=Desconhecido[0m
+[0;33mW (61411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (62411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (63411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (64411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (65411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (66411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (67411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (68411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (69411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (70411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (71411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (72411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (73411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (74411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;32mI (75393) WIFI: Timer de reconexao disparado — chamando esp_wifi_connect()[0m
+[0;33mW (75411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (76411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (77411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (77802) WIFI: Wi-Fi desconectado. Tentativa 6 em 64000 ms[0m
+[0;33mW (77806) MAIN: Wi-Fi desconectado — modo offline[0m
+[0;33mW (78411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (79411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (80411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (81411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (82411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (83411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (84411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (85411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (86411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (87411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (88411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (89411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (90411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[1;31mE (91399) HDC1080: Falha ao apontar registrador de temperatura: ESP_ERR_INVALID_RESPONSE[0m
+[0;33mW (91399) SENSORS: HDC1080: leitura inválida[0m
+[0;32mI (91400) SENSORS: T=0.0°C H=0.0% Lux=896 Motion=0 Postura=Desconhecido[0m
+[0;33mW (91411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (92411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (93411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (94411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (95411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (96411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (97411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (98411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (99411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (100411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (101411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (102411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (103411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (104411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (105411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (106411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (107411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (108411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (109411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (110411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (111411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (112411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (113411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (114411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (115411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (116411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (117411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (118411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (119411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (120411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[1;31mE (121399) HDC1080: Falha ao apontar registrador de temperatura: ESP_ERR_INVALID_RESPONSE[0m
+[0;33mW (121399) SENSORS: HDC1080: leitura inválida[0m
+[0;32mI (121400) SENSORS: T=0.0°C H=0.0% Lux=939 Motion=0 Postura=Desconhecido[0m
+[0;33mW (121411) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (122412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (123412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (124412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (125412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (126412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (127412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (128412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (129412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (130412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (131412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (132412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (133412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (134412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (135412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (136412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (137412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (138412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (139412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (140412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (141412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;32mI (141803) WIFI: Timer de reconexao disparado — chamando esp_wifi_connect()[0m
+[0;33mW (142412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (143412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (144212) WIFI: Wi-Fi desconectado. Tentativa 7 em 120000 ms[0m
+[0;33mW (144217) MAIN: Wi-Fi desconectado — modo offline[0m
+[0;33mW (144412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (145412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (146412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (147412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (148412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
+[0;33mW (149412) MAX30102: Falha na leitura: ESP_ERR_INVALID_STATE[0m
