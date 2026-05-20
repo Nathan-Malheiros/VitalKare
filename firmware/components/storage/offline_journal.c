@@ -105,6 +105,110 @@ static esp_err_t cursor_save(uint32_t value)
 }
 
 /* =========================================================
+ * TRUNCATION — remove partial trailing records on init
+ *
+ * WHY: A power failure that occurs between fwrite(sentinel) and
+ * fwrite(body) leaves a partial record at the file tail.  On every
+ * subsequent replay, the resync loop walks over these bytes, generates
+ * log noise, and wastes I/O.  This scan-and-truncate runs once at init
+ * and cuts the file back to the byte immediately after the last valid,
+ * CRC-verified record.
+ *
+ * ALGORITHM:
+ *   Walk all records from byte 0 (not from cursor — the cursor only
+ *   tracks replay progress, not file integrity).  Track `good_end` =
+ *   file offset after the last successfully validated record.  If
+ *   file_size > good_end, truncate there.
+ *
+ * SAFETY:
+ *   Uses truncate(2) which is supported by the ESP-IDF FatFS VFS
+ *   driver (available since IDF 4.4).  If truncation fails (e.g. SD
+ *   card write-protected), the init still succeeds — the resync loop
+ *   during replay handles the partial tail anyway.
+ * ========================================================= */
+static void journal_truncate_at_last_good_record(void)
+{
+    FILE *f = fopen(OFFLINE_JOURNAL_PATH, "rb");
+    if (!f) return;  /* File does not exist yet — nothing to truncate */
+
+    fseek(f, 0, SEEK_END);
+    long file_size = ftell(f);
+    rewind(f);
+
+    if (file_size <= 0) { fclose(f); return; }
+
+    long good_end     = 0;
+    int  resync_count = 0;
+    const int MAX_RESYNC = 1000;
+
+    uint8_t header[10];
+    uint8_t payload_buf[OFFLINE_JOURNAL_MAX_PAYLOAD];
+
+    while (resync_count < MAX_RESYNC) {
+        long record_start = ftell(f);
+        size_t n = fread(header, 1, 10, f);
+        if (n < 10) break;  /* EOF or short header — stop scan */
+
+        if (header[0] != 0xAAu) {
+            fseek(f, record_start + 1, SEEK_SET);
+            resync_count++;
+            continue;
+        }
+
+        uint16_t stored_crc  = (uint16_t)(header[1] | ((uint16_t)header[2] << 8));
+        uint16_t payload_len = (uint16_t)(header[8] | ((uint16_t)header[9] << 8));
+
+        if (payload_len > OFFLINE_JOURNAL_MAX_PAYLOAD) {
+            fseek(f, record_start + 1, SEEK_SET);
+            resync_count++;
+            continue;
+        }
+
+        if (payload_len > 0) {
+            size_t pr = fread(payload_buf, 1, payload_len, f);
+            if (pr < payload_len) break;  /* Partial payload — truncation boundary */
+        }
+
+        /* Verify CRC over: type(1) + ts(4) + len(2) + payload */
+        uint8_t body_for_crc[7 + OFFLINE_JOURNAL_MAX_PAYLOAD];
+        memcpy(body_for_crc, &header[3], 7);
+        if (payload_len > 0) memcpy(&body_for_crc[7], payload_buf, payload_len);
+        uint16_t calc_crc = crc16_ccitt(body_for_crc, 7u + payload_len);
+
+        if (calc_crc != stored_crc) {
+            fseek(f, record_start + 1, SEEK_SET);
+            resync_count++;
+            continue;
+        }
+
+        /* Valid complete record — advance the good boundary */
+        good_end = ftell(f);
+        resync_count = 0;
+    }
+
+    fclose(f);
+
+    /* Adjust cursor if it somehow points past the good boundary
+     * (e.g. file was partially truncated externally) */
+    if (s_cursor > (uint32_t)good_end) {
+        ESP_LOGW(TAG, "Cursor %lu > good_end %ld — resetting cursor",
+                 (unsigned long)s_cursor, good_end);
+        s_cursor = (uint32_t)good_end;
+        cursor_save(s_cursor);
+    }
+
+    if (file_size > good_end) {
+        ESP_LOGW(TAG, "Journal tail: %ld garbage bytes after last good record "
+                 "(file_size=%ld good_end=%ld) — truncating",
+                 file_size - good_end, file_size, good_end);
+        if (truncate(OFFLINE_JOURNAL_PATH, (off_t)good_end) != 0) {
+            /* Non-fatal: replay resync handles partial tail anyway */
+            ESP_LOGW(TAG, "truncate() failed errno=%d — replay will resync", errno);
+        }
+    }
+}
+
+/* =========================================================
  * INICIALIZAÇÃO
  * ========================================================= */
 esp_err_t offline_journal_init(void)
@@ -123,6 +227,11 @@ esp_err_t offline_journal_init(void)
         ESP_LOGW(TAG, "SD não montado — journal indisponível");
         return ESP_ERR_INVALID_STATE;
     }
+
+    /* Truncate any partial trailing records left by a prior power failure.
+     * This is a one-time O(file_size) scan — acceptable at boot time.
+     * Prevents resync noise on every subsequent replay call. */
+    journal_truncate_at_last_good_record();
 
     ESP_LOGI(TAG, "Inicializado (cursor=%lu)", (unsigned long)s_cursor);
     system_manager_report_subsystem(SUBSYS_JOURNAL, true);

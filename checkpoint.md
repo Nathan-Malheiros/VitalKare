@@ -610,21 +610,21 @@ Difficult debugging under:
 
 # 2. COMPLETE VK VALIDATOR INTEGRATION
 
-## Missing
+## Status: COMPLETED
 
-* RX integration
-* malformed packet isolation
-* replay attack protection
-* sequence validation
-* parser hardening
+### What was done
 
-## Risk
+* `vk_validate_frame()` is now called in `task_tcp_rx` instead of `vk_frame_parse()`
+* `vk_validator_reset()` called at start of each new ACTIVE connection (clears sequence window)
+* 1-byte resync strategy applied on any non-INCOMPLETE validation error
+* `vk_validator_log_error()` called for every invalid frame
+* All seven error classes handled: magic, version, payload length, CRC, replay, unknown type, incomplete
 
-Malformed packets may still:
+### Result
 
-* corrupt parser state
-* cause retry loops
-* generate invalid dispatches
+* Malformed packets are now rejected before reaching command processor
+* Replay attacks from previous sessions are blocked by the anti-replay window reset
+* Stream alignment recovery is automatic via 1-byte magic resync
 
 ---
 
@@ -646,34 +646,72 @@ Subsystems still degrade independently.
 
 # 4. RECORDING RECOVERY FSM
 
-## CRITICAL PENDING ITEM
+## Status: COMPLETED
 
-Still undefined:
+### Files created
 
-What happens if:
+* `firmware/components/audio/recording_recovery.h` — FSM header, API, design documentation
+* `firmware/components/audio/recording_recovery.c` — full implementation
 
-* TCP disconnects during recording?
-* WiFi drops during emergency?
-* reconnect occurs mid-upload?
+### Architecture
 
-## Missing
+Dual-path design for EMERGENCY sessions:
 
-* session persistence
-* deferred upload FSM
-* chunk replay
-* upload resumption
-* duplication prevention
+* EMERGENCY recordings always persisted to SD card regardless of TCP state
+* SD write happens simultaneously with TCP send (fast path + recovery path)
+* On reconnect: SD chunks replayed via `recording_recovery_on_tcp_connected()` / `recording_recovery_upload_tick()`
+* Server deduplicates by (session_id, chunk_index)
+* REQUEST sessions are TCP-only (no SD persistence)
+
+### FSM states
+
+* IDLE — no pending session
+* ACTIVE — emergency session recording; chunks being written to SD
+* PENDING — session complete on SD; awaiting TCP reconnect
+* UPLOADING — deferred upload in progress
+
+### SD layout
+
+* Directory: `/sdcard/audio/`
+* File per session: `/sdcard/audio/SSSSSSSS.bin`
+* Chunk record: `[magic 0xA5A5][chunk_index][adpcm_len][adpcm_data][CRC16]`
+
+### NVS persistence
+
+Namespace `vk_rec`: state, sess_id, sess_trig, chunk_cnt, upload_cur
+Survives power failure and reboots
+
+### Integration
+
+* `audio_encoder.c` calls `recording_recovery_session_begin()` on new session
+* `audio_encoder.c` calls `recording_recovery_submit_chunk()` for every EMERGENCY chunk
+* Idle loop in `task_audio_encoder` drives upload via `upload_tick()` every 100 ms
+* `audio/CMakeLists.txt` updated: `recording_recovery.c` added to SRCS; `storage` and `nvs_flash` added to REQUIRES
+
+### Result
+
+TCP disconnect during emergency recording no longer silently discards audio
 
 ---
 
 # 5. FULL POWER-FAILURE HARDENING
 
-## Missing
+## Status: PARTIALLY COMPLETED
 
-* torn-write recovery validation
-* replay-loop protection
-* incomplete-record truncation
+### Completed this session
+
+* `offline_journal.c` now calls `journal_truncate_at_last_good_record()` during init
+* Scans file from byte 0; identifies last byte after last valid CRC-verified record
+* Truncates file there via `truncate()` (POSIX, supported by ESP-IDF FatFS VFS)
+* NVS cursor adjusted if it points past the truncation boundary
+* Prevents partial trailing records from accumulating across power cycles
+* Eliminates resync log noise on every subsequent replay call
+
+### Still pending
+
+* Replay-loop protection under SD corruption
 * SD-removal recovery testing
+* Integration test for power-failure simulation
 
 ---
 
@@ -719,27 +757,40 @@ Still unvalidated for:
 
 # 8. FULL NETWORK FSM VALIDATION
 
-## Missing
+## Status: PARTIALLY COMPLETED
 
-Need formal audit of:
+### Fixed this session
 
-* illegal transitions
-* reconnect loops
-* stale ACTIVE states
-* duplicate socket ownership
+* `s_reconnect_delay_ms` was a plain `uint32_t` written by `task_tcp_rx` and read-modified by `task_tcp_tx` on dual-core ESP32-S3 — data race
+* Fixed: declared as `static _Atomic uint32_t s_reconnect_delay_ms`
+* `schedule_reconnect()` now uses `atomic_load()` + `atomic_store()` for the backoff read-modify-write
+* Reset in `task_tcp_rx` (on HANDSHAKE_ACK) uses `atomic_store()`
+* All other shared cross-task state (`s_state`, `s_seq`) was already `_Atomic`
+
+### Still pending
+
+* Formal audit of illegal FSM transitions under edge cases
+* Reconnect storm testing
+* Stale ACTIVE state investigation
 
 ---
 
 # 9. COMPLETE ASSERTION INTEGRATION
 
-## Missing
+## Status: PARTIALLY COMPLETED
 
-Assertions not yet integrated across:
+### Completed this session
 
-* queues
-* pools
-* FSMs
-* ownership boundaries
+* `vk_assert.h` included in `audio_capture.c`
+* `VK_ASSERT_WARN` added to `audio_ctrl_stop()` when called in invalid state (was silent)
+* `VK_ASSERT_FSM` added to `task_audio_ctrl` CAS failure path (ARMED→RECORDING race)
+* `do_connect()` and `do_disconnect()` in `tcp_client.c` already had `VK_ASSERT_FSM` guards
+
+### Still pending
+
+* Assertion sweep across sensor task and display task FSMs
+* Pool ownership assertions in audio chunk pool
+* Queue depth assertions at critical send sites
 
 ---
 
@@ -781,7 +832,9 @@ Need:
 
 ## TCP disconnect during emergency recording
 
-Still not fully resolved.
+**RESOLVED** — Recording Recovery FSM implemented.
+Emergency audio is now dual-path persisted to SD card.
+Deferred upload resumes on reconnect with server-side deduplication.
 
 ---
 

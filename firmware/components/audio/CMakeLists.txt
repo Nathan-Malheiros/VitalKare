@@ -3,6 +3,7 @@ idf_component_register(
         "audio_capture.c"
         "audio_encoder.c"
         "adpcm.c"
+        "recording_recovery.c"
     INCLUDE_DIRS "."
     REQUIRES
         esp_driver_i2s
@@ -12,4 +13,6 @@ idf_component_register(
         events
         network
         core
+        storage
+        nvs_flash
 )

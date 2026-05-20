@@ -57,7 +57,13 @@ static const char *TAG_RX = "TCP_RX";
 static volatile int            s_sock           = -1;
 static _Atomic tcp_conn_state_t s_state         = TCP_STATE_DISCONNECTED;
 static EventGroupHandle_t      s_event_grp      = NULL;
-static uint32_t                s_reconnect_delay_ms = APP_TCP_RECONNECT_MIN_MS;
+/*
+ * Written by task_tcp_rx (reset on HANDSHAKE_ACK) and read-modified by
+ * task_tcp_tx (exponential backoff in schedule_reconnect).  On dual-core
+ * ESP32-S3 both tasks can run simultaneously — _Atomic ensures sequential
+ * consistency with no torn reads/writes.
+ */
+static _Atomic uint32_t        s_reconnect_delay_ms = APP_TCP_RECONNECT_MIN_MS;
 static esp_timer_handle_t      s_reconnect_timer    = NULL;
 
 /* Heartbeat — used by task_tcp_tx only */
@@ -214,13 +220,13 @@ static void schedule_reconnect(void)
     }
     ESP_LOGW(TAG_TX, "Reconectando em %lu ms", (unsigned long)s_reconnect_delay_ms);
     esp_timer_start_once(s_reconnect_timer,
-                         (uint64_t)s_reconnect_delay_ms * 1000ULL);
+                         (uint64_t)atomic_load(&s_reconnect_delay_ms) * 1000ULL);
 
-    /* Backoff exponencial */
-    s_reconnect_delay_ms *= 2;
-    if (s_reconnect_delay_ms > APP_TCP_RECONNECT_MAX_MS) {
-        s_reconnect_delay_ms = APP_TCP_RECONNECT_MAX_MS;
-    }
+    /* Backoff exponencial: load → compute → store, all via _Atomic */
+    uint32_t cur  = atomic_load(&s_reconnect_delay_ms);
+    uint32_t next = (cur <= APP_TCP_RECONNECT_MAX_MS / 2u)
+                    ? cur * 2u : APP_TCP_RECONNECT_MAX_MS;
+    atomic_store(&s_reconnect_delay_ms, next);
 }
 
 /* =========================================================
@@ -477,6 +483,7 @@ void task_tcp_rx(void *arg)
         /* Aguarda socket ficar ACTIVE */
         xEventGroupWaitBits(s_event_grp, TCP_BIT_ACTIVE, pdFALSE, pdTRUE, portMAX_DELAY);
         recv_head = 0;
+        vk_validator_reset();  /* Clear sequence window — new session, new seq space */
         ESP_LOGD(TAG_RX, "Socket ACTIVE — recv loop");
 
         for (;;) {
@@ -513,9 +520,24 @@ void task_tcp_rx(void *arg)
                 const uint8_t     *pload = NULL;
                 size_t             flen  = 0;
 
-                if (!vk_frame_parse(s_recv_buf + consumed, recv_head - consumed,
-                                    &hdr, &pload, &flen)) {
-                    break;
+                /*
+                 * Full frame validation: magic, version, payload length,
+                 * CRC-16, replay window, and packet type range check.
+                 * On any error other than INCOMPLETE: advance 1 byte
+                 * ("magic byte resync") to recover stream alignment.
+                 */
+                vk_validation_result_t vr = vk_validate_frame(
+                    s_recv_buf + consumed, recv_head - consumed,
+                    &hdr, &pload, &flen);
+
+                if (vr == VK_ERR_INCOMPLETE) {
+                    break;  /* Need more bytes — wait for next recv() */
+                }
+                if (vr != VK_VALID) {
+                    vk_validator_log_error(vr, s_recv_buf + consumed,
+                                           recv_head - consumed);
+                    consumed++;  /* Advance 1 byte — attempt magic resync */
+                    continue;
                 }
 
                 pkt_type_t ptype = (pkt_type_t)hdr->pkt_type;
@@ -524,7 +546,7 @@ void task_tcp_rx(void *arg)
                     atomic_load(&s_state) == TCP_STATE_HANDSHAKE) {
 
                     atomic_store(&s_state, TCP_STATE_ACTIVE);
-                    s_reconnect_delay_ms = APP_TCP_RECONNECT_MIN_MS;
+                    atomic_store(&s_reconnect_delay_ms, APP_TCP_RECONNECT_MIN_MS);
                     ESP_LOGI(TAG_RX, "Handshake OK — ACTIVE");
 
                     system_event_t evt = {

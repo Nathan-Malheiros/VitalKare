@@ -26,6 +26,7 @@
 
 #include "../network/tcp_client.h"
 #include "../core/task_monitor.h"
+#include "recording_recovery.h"
 
 static const char *TAG = "AUDIO_ENC";
 
@@ -78,7 +79,16 @@ void task_audio_encoder(void *arg)
 
     for (;;) {
         task_monitor_heartbeat(TASK_ID_AUDIO_ENC);
-        if (xQueueReceive(s_chunk_queue, &chunk, portMAX_DELAY) != pdTRUE) {
+        if (xQueueReceive(s_chunk_queue, &chunk, pdMS_TO_TICKS(100)) != pdTRUE) {
+            /* No new chunk — drive deferred emergency upload during encoder idle time.
+             * PENDING: TCP just reconnected; open the file and start uploading.
+             * UPLOADING: advance one chunk per idle tick (100 ms granularity). */
+            rec_recovery_state_t rstate = recording_recovery_get_state();
+            if (rstate == REC_RECOVERY_PENDING && tcp_client_is_connected()) {
+                recording_recovery_on_tcp_connected();
+            } else if (rstate == REC_RECOVERY_UPLOADING) {
+                recording_recovery_upload_tick();
+            }
             continue;
         }
 
@@ -89,6 +99,11 @@ void task_audio_encoder(void *arg)
             total_pcm_samples = 0;
             total_chunks     = 0;
             adpcm_encoder_reset(&enc_state);
+
+            /* EMERGENCY sessions: open SD file for dual-path persistence.
+             * REQUEST sessions: no-op — TCP-only. */
+            recording_recovery_session_begin(chunk.session_id,
+                                             (audio_trigger_t)chunk.trigger);
 
             pkt_audio_session_start_t start = {
                 .session_id      = chunk.session_id,
@@ -132,6 +147,17 @@ void task_audio_encoder(void *arg)
                                   (uint32_t)(sizeof(chunk_hdr) + adpcm_len));
         if (flen > 0) {
             tcp_client_send_normal(s_frame_buf, (uint16_t)flen);
+        }
+
+        /* EMERGENCY dual-path: persist encoded chunk to SD regardless of TCP outcome.
+         * The server deduplicates by (session_id, chunk_index) when the deferred
+         * upload re-sends chunks that already arrived via the fast TCP path. */
+        if ((audio_trigger_t)chunk.trigger == AUDIO_TRIGGER_EMERGENCY) {
+            recording_recovery_submit_chunk(
+                chunk.session_id, chunk.chunk_index,
+                (audio_trigger_t)chunk.trigger,
+                s_adpcm_buf, (uint16_t)adpcm_len,
+                chunk.is_last);
         }
 
         ESP_LOGD(TAG, "Chunk %u: %u amostras PCM → %zu bytes ADPCM (sess=%lu)",

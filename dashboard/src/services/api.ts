@@ -1,7 +1,7 @@
 import axios, { type AxiosRequestConfig } from 'axios'
 
 const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: '/api',
   headers: { 'Content-Type': 'application/json' },
 })
 

@@ -17,21 +17,14 @@ export const useAuthStore = create<AuthState>()(
       operatorName: null,
       operatorRole: null,
 
-      login: async (email, password) => {
-        const form = new FormData()
-        form.append('username', email)
-        form.append('password', password)
-        const { data } = await api.post('/auth/token', form, {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        })
-        // Decodifica claims do JWT sem biblioteca adicional
-        const payloadB64 = data.access_token.split('.')[1]
-        const claims = JSON.parse(atob(payloadB64.replace(/-/g, '+').replace(/_/g, '/')))
+      login: async (username, password) => {
+        const { data } = await api.post('/auth/login', { username, password })
         set({
           accessToken: data.access_token,
-          operatorName: claims.name ?? email,
-          operatorRole: claims.role ?? null,
+          operatorName: data.username ?? username,
+          operatorRole: data.role ?? null,
         })
+        localStorage.setItem('access_token', data.access_token)
       },
 
       logout: () => {

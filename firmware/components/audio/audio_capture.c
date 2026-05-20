@@ -28,6 +28,7 @@
 #include "../../config/app_config.h"
 #include "../events/event_dispatcher.h"
 #include "../core/system_manager.h"
+#include "../core/vk_assert.h"
 #include <string.h>
 #include <stdatomic.h>
 
@@ -223,6 +224,9 @@ esp_err_t audio_ctrl_stop(void)
 
     /* Válido apenas em ARMED ou RECORDING */
     if (cur != AUDIO_STATE_ARMED && cur != AUDIO_STATE_RECORDING) {
+        VK_ASSERT_WARN(false,
+            "audio_ctrl_stop: invalid state %d (expected ARMED or RECORDING)",
+            (int)cur);
         return ESP_ERR_INVALID_STATE;
     }
 
@@ -265,8 +269,9 @@ void task_audio_ctrl(void *arg)
         /* Verifica que ainda estamos em ARMED (não houve stop entre o notify e agora) */
         audio_state_t arm_expected = AUDIO_STATE_ARMED;
         if (!atomic_compare_exchange_strong(&s_state, &arm_expected, AUDIO_STATE_RECORDING)) {
-            ESP_LOGW(TAG, "NOTIFY_START recebido mas estado nao ARMED (%d) — abortando",
-                     (int)arm_expected);
+            VK_ASSERT_FSM(false,
+                "NOTIFY_START: expected ARMED got %d — concurrent stop/timeout race?",
+                (int)arm_expected);
             atomic_store(&s_state, AUDIO_STATE_IDLE);
             continue;
         }
