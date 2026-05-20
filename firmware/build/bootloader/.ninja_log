@@ -1,0 +1,402 @@
+# ninja log v6
+749	1131	8008117088290483	esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/port/esp32s3/esp_cpu_intr.c.obj	c8aa2e9ea54fd5da
+112	697	8008117081915612	esp-idf/log/CMakeFiles/__idf_log.dir/src/log_timestamp_common.c.obj	493e1ffa3620e3ed
+217	614	8008117082972145	esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/patches/esp_rom_crc.c.obj	3fae4668ce4585dd
+704	1107	8008117087836558	esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/patches/esp_rom_cache_writeback_esp32s3.S.obj	50d7513071c735f7
+132	622	8008117082123571	esp-idf/log/CMakeFiles/__idf_log.dir/src/noos/util.c.obj	ea48b2fca1d558ab
+145	680	8008117082254148	esp-idf/log/CMakeFiles/__idf_log.dir/src/log_format_text.c.obj	36bf0330180568ca
+119	674	8008117081985037	esp-idf/log/CMakeFiles/__idf_log.dir/src/noos/log_lock.c.obj	213d14adc755df73
+138	703	8008117082189735	esp-idf/log/CMakeFiles/__idf_log.dir/src/util.c.obj	30dd9d17bc339e7f
+203	755	8008117082824153	esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/patches/esp_rom_sys.c.obj	3d5319a5d712df13
+95	742	8008117081747317	esp-idf/log/CMakeFiles/__idf_log.dir/src/noos/log_timestamp.c.obj	d2ac888f2251aac3
+998	1558	8008117090769510	esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/port/esp32s3/rtc_clk_init.c.obj	b057e629a1dc944a
+125	730	8008117082054955	esp-idf/log/CMakeFiles/__idf_log.dir/src/buffer/log_buffers.c.obj	9477796b46c02a40
+158	749	8008117082381506	esp-idf/log/CMakeFiles/__idf_log.dir/src/log_print.c.obj	eb557d13a379df3b
+195	806	8008117082752114	esp-idf/log/CMakeFiles/__idf_log.dir/src/log.c.obj	47548ccdf3dd4342
+2591	3209	8008117106706497	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_console_loader.c.obj	a88a1cf1aceb2ae7
+5394	6084	8008117134731633	esp-idf/soc/CMakeFiles/__idf_soc.dir/dport_access_common.c.obj	fcbe19d0fccb2b6e
+2154	2793	8008117102345885	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/bootloader_flash/src/flash_qio_mode.c.obj	8085f8e7d5ec83d4
+229	894	8008117083090006	esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/patches/esp_rom_spiflash.c.obj	859b290a9b065366
+210	911	8008117082890946	esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/patches/esp_rom_print.c.obj	d7e0db8945a68d19
+616	1033	8008117086943043	esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/patches/esp_rom_efuse.c.obj	a887d66e7d9f0e27
+622	998	8008117087022713	esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/patches/esp_rom_gpio.c.obj	72c80857e793011d
+8833	8969	8008117169128494	esp-idf/esp_hal_gpio/libesp_hal_gpio.a	d44eb532a94d2364
+674	1039	8008117087539290	esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/patches/esp_rom_longjmp.S.obj	8ecf75cb2cad3288
+39	150492	8008189139409023	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hw_support/lowpower/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189133144579	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_blockdev/cmake_install.cmake	3b1f4c83a9ca1b7f
+680	1058	8008117087603152	esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/patches/esp_rom_systimer.c.obj	f4cbe466d812c5c4
+39	150492	8008189133033011	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hal_clock/cmake_install.cmake	3b1f4c83a9ca1b7f
+730	1521	8008117088100601	esp-idf/esp_common/CMakeFiles/__idf_esp_common.dir/src/esp_err_to_name.c.obj	b792c5f3cc579b62
+1638	2154	8008117097172977	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_clock_init.c.obj	9823d5ba6a3ebc91
+223	1068	8008117083037302	esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/patches/esp_rom_serial_output.c.obj	1121008774cb9d83
+697	1123	8008117087768883	esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/patches/esp_rom_cache_esp32s2_esp32s3.c.obj	4a2b4e65bad7583e
+7174	7321	8008117152532749	esp-idf/esp_hal_uart/libesp_hal_uart.a	cdba7a87f5d3fb91
+755	1151	8008117088359907	esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/esp_memory_utils.c.obj	dca26f46aa5bc0a7
+2748	3496	8008117108280647	esp-idf/esp_hw_support/libesp_hw_support.a	ea74c9681baf3c82
+742	1305	8008117088224445	esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/cpu.c.obj	6adc619774e81d6b
+895	1406	8008117089749315	esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/port/esp32s3/cpu_region_protect.c.obj	67f913eba9b6817f
+2012	2804	8008117100923461	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_random_esp32s3.c.obj	6084ddda1a58bd91
+1039	1820	8008117091177291	esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/port/esp32s3/rtc_sleep.c.obj	982ca88a63fbe974
+806	1481	8008117088861866	esp-idf/log/liblog.a	ac01bc17f2af3975
+1069	1539	8008117091484355	esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/port/esp32s3/chip_info.c.obj	196bcba84dc7e402
+1589	2591	8008117096689871	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_common.c.obj	eb64cf7a3ce9e9be
+1539	2341	8008117096189476	esp-idf/efuse/CMakeFiles/__idf_efuse.dir/src/esp_efuse_utility.c.obj	d6a256e7b6dc5eef
+1124	1588	8008117092041078	esp-idf/efuse/CMakeFiles/__idf_efuse.dir/esp32s3/esp_efuse_table.c.obj	ad22bcc2cdbba5d9
+1151	1638	8008117092308787	esp-idf/efuse/CMakeFiles/__idf_efuse.dir/esp32s3/esp_efuse_rtc_calib.c.obj	d389c6f673c13d89
+1860	2677	8008117099397926	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/flash_encrypt.c.obj	a35414c952d45a4c
+1107	1603	8008117091872837	esp-idf/esp_system/CMakeFiles/__idf_esp_system.dir/esp_err.c.obj	c4817e574c8dbd17
+1131	1827	8008117092109564	esp-idf/efuse/CMakeFiles/__idf_efuse.dir/esp32s3/esp_efuse_fields.c.obj	18fd07b2de3c3c64
+1058	1836	8008117091374683	esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/port/esp32s3/rtc_time.c.obj	e81924dfe78c7b4b
+1033	1860	8008117091121428	esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/port/esp32s3/rtc_init.c.obj	f4b2c73656c71847
+39	150492	8008189142381575	build.ninja	3b1f4c83a9ca1b7f
+1305	1995	8008117093853026	esp-idf/efuse/CMakeFiles/__idf_efuse.dir/esp32s3/esp_efuse_utility.c.obj	a4df6451dfc58814
+1996	2585	8008117100748193	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/secure_boot.c.obj	178eb5f9f237157b
+1407	2012	8008117094869438	esp-idf/efuse/CMakeFiles/__idf_efuse.dir/src/esp_efuse_api.c.obj	326d5cfa9667bf9b
+3783	4376	8008117118619039	esp-idf/esp_hal_timg/CMakeFiles/__idf_esp_hal_timg.dir/timer_hal.c.obj	648d18df8ac530a8
+1521	2023	8008117096013348	esp-idf/efuse/CMakeFiles/__idf_efuse.dir/src/esp_efuse_fields.c.obj	527d478c54d3ba71
+1481	2136	8008117095615132	esp-idf/esp_rom/libesp_rom.a	5833662ed644a6dc
+2559	3009	8008117106398645	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_clock_loader.c.obj	528e60636be9932a
+4913	5513	8008117129930921	esp-idf/esp_hal_gpio/CMakeFiles/__idf_esp_hal_gpio.dir/sdm_hal.c.obj	ea328091a75cfaa4
+911	2167	8008117089903038	esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/port/esp32s3/rtc_clk.c.obj	ff8e1fd9de6d7d50
+1559	2306	8008117096387921	esp-idf/efuse/CMakeFiles/__idf_efuse.dir/src/efuse_controller/keys/with_key_purposes/esp_efuse_api_key.c.obj	77b700c080377639
+39	150492	8008189135602196	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hal_wdt/cmake_install.cmake	3b1f4c83a9ca1b7f
+1837	2394	8008117099168165	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_efuse.c.obj	4dd331a497f76bec
+1821	2471	8008117099009932	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_mem.c.obj	5f90d73fa04af5eb
+2023	3109	8008117101039659	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/bootloader_flash/src/bootloader_flash.c.obj	e0e30377f401688a
+1604	2478	8008117096839131	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_common_loader.c.obj	1b4ce7fa357238ce
+3902	4457	8008117119812844	esp-idf/spi_flash/CMakeFiles/__idf_spi_flash.dir/spi_flash_wrap.c.obj	88736beff941b379
+4308	4913	8008117123881088	esp-idf/esp_hal_dma/CMakeFiles/__idf_esp_hal_dma.dir/gdma_hal_ahb_v1.c.obj	cd46fedc72e7205b
+39	150492	8008189131248381	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hal_gpio/cmake_install.cmake	3b1f4c83a9ca1b7f
+1827	2559	8008117099061346	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_random.c.obj	f6170692b43189e7
+2136	2747	8008117102158582	esp-idf/esp_common/libesp_common.a	def3b22940395b6b
+2168	2875	8008117102479745	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/bootloader_flash/src/bootloader_flash_config_esp32s3.c.obj	779b73b6a83689b3
+39	150492	8008189136948674	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hal_security/cmake_install.cmake	3b1f4c83a9ca1b7f
+2341	2886	8008117104209772	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/flash_partitions.c.obj	7f7fd0bd78ae6866
+2471	3016	8008117105511995	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_sha.c.obj	ee58bb32dde5d6d4
+3931	4411	8008117120106393	esp-idf/esp_hal_clock/CMakeFiles/__idf_esp_hal_clock.dir/esp32s3/clk_tree_hal.c.obj	9266fa1d8981fd97
+2677	3260	8008117107562379	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/esp32s3/bootloader_soc.c.obj	b69a56dfb1a2dedc
+5421	5954	8008117135011797	esp-idf/soc/CMakeFiles/__idf_soc.dir/esp32s3/interrupts.c.obj	7f975216fc7f5067
+2876	3344	8008117109560680	esp-idf/esp_security/CMakeFiles/__idf_esp_security.dir/src/esp_crypto_lock.c.obj	f3fac688def34951
+2585	3273	8008117106647164	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_console.c.obj	b81aa8767883c8ec
+2804	3469	8008117108838633	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_panic.c.obj	91e44e2c686acb2c
+2306	3508	8008117103866279	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_utility.c.obj	c007ea087aae1f9c
+2395	3515	8008117104747022	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/esp_image_format.c.obj	5da3d28713c64a68
+2478	3521	8008117105579265	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_init.c.obj	d2a109b591ab8703
+2886	3545	8008117109658391	esp-idf/esp_security/CMakeFiles/__idf_esp_security.dir/src/esp_crypto_periph_clk.c.obj	ffbcf58319fdf602
+3009	3559	8008117110891389	esp-idf/esp_hal_security/CMakeFiles/__idf_esp_hal_security.dir/mpu_hal.c.obj	b0dd89e86ff025da
+3273	3931	8008117113535992	esp-idf/esp_hal_ana_conv/CMakeFiles/__idf_esp_hal_ana_conv.dir/temperature_sensor_hal.c.obj	f7f868a5980ee16c
+3016	3743	8008117110950308	esp-idf/esp_hal_ana_conv/CMakeFiles/__idf_esp_hal_ana_conv.dir/esp32s3/adc_periph.c.obj	dfa37ec78b17ac68
+2793	3783	8008117108727774	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/esp32s3/bootloader_esp32s3.c.obj	8605dfd145956e08
+3344	3830	8008117114245061	esp-idf/esp_hal_ana_conv/CMakeFiles/__idf_esp_hal_ana_conv.dir/esp32s3/temperature_sensor_periph.c.obj	b6e2399da7362c72
+3546	3867	8008117116258484	esp-idf/esp_hal_wdt/CMakeFiles/__idf_esp_hal_wdt.dir/esp32s3/mwdt_periph.c.obj	8cdb6af1b7b29ce5
+39	150492	8008189129058657	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/cmake_install.cmake	3b1f4c83a9ca1b7f
+3260	3902	8008117113384324	esp-idf/esp_hal_ana_conv/CMakeFiles/__idf_esp_hal_ana_conv.dir/adc_hal.c.obj	e4de010fdb1bbed4
+3515	3940	8008117115942587	esp-idf/esp_hal_uart/CMakeFiles/__idf_esp_hal_uart.dir/esp32s3/uart_periph.c.obj	c4f161d8dac3b5aa
+5375	5925	8008117134534524	esp-idf/soc/CMakeFiles/__idf_soc.dir/lldesc.c.obj	e6dd823ef051e448
+3109	3946	8008117111880895	esp-idf/esp_hal_ana_conv/CMakeFiles/__idf_esp_hal_ana_conv.dir/adc_hal_common.c.obj	7c1d6181b70006fe
+3209	3952	8008117112895053	esp-idf/esp_hal_ana_conv/CMakeFiles/__idf_esp_hal_ana_conv.dir/adc_oneshot_hal.c.obj	bf863867d030dc23
+3508	4031	8008117115878538	esp-idf/esp_hal_uart/CMakeFiles/__idf_esp_hal_uart.dir/uart_hal_iram.c.obj	68084687bd225c52
+3521	4044	8008117116014182	esp-idf/esp_hal_uart/CMakeFiles/__idf_esp_hal_uart.dir/uhci_hal.c.obj	8b692a7dc6583bd0
+3496	4116	8008117115753625	esp-idf/esp_system/libesp_system.a	fd4ea2f09d32f821
+3559	4175	8008117116391013	esp-idf/esp_hal_wdt/CMakeFiles/__idf_esp_hal_wdt.dir/rom_patch.c.obj	931abf0f63e3aef7
+4457	5009	8008117125366987	esp-idf/esp_hal_usb/CMakeFiles/__idf_esp_hal_usb.dir/esp32s3/usb_dwc_periph.c.obj	fbbd7774130279f0
+3743	4287	8008117118231637	esp-idf/esp_hal_wdt/CMakeFiles/__idf_esp_hal_wdt.dir/xt_wdt_hal.c.obj	cd88c4d90582b1d5
+3469	4301	8008117115495679	esp-idf/esp_hal_uart/CMakeFiles/__idf_esp_hal_uart.dir/uart_hal.c.obj	1c5586ec6308434e
+3830	4307	8008117119099001	esp-idf/esp_hal_timg/CMakeFiles/__idf_esp_hal_timg.dir/esp32s3/timer_periph.c.obj	495b310cb0a89f58
+3868	4360	8008117119475751	esp-idf/esp_bootloader_format/CMakeFiles/__idf_esp_bootloader_format.dir/esp_bootloader_desc.c.obj	c51ea2fd39ca64d9
+39	150492	8008189140143113	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_common/cmake_install.cmake	3b1f4c83a9ca1b7f
+3940	4386	8008117120185878	esp-idf/esp_hal_gpspi/CMakeFiles/__idf_esp_hal_gpspi.dir/esp32s3/spi_periph.c.obj	3e97f29d12ddbc11
+3946	4567	8008117120246530	esp-idf/esp_hal_gpspi/CMakeFiles/__idf_esp_hal_gpspi.dir/spi_hal.c.obj	d54c767b62cdb897
+4031	4591	8008117121113396	esp-idf/esp_hal_gpspi/CMakeFiles/__idf_esp_hal_gpspi.dir/spi_slave_hal.c.obj	6a31abfb25f41897
+4045	4792	8008117121241499	esp-idf/esp_hal_gpspi/CMakeFiles/__idf_esp_hal_gpspi.dir/spi_slave_hal_iram.c.obj	af4aaae1eb888d28
+4287	4841	8008117123664850	esp-idf/esp_hal_dma/CMakeFiles/__idf_esp_hal_dma.dir/gdma_hal_top.c.obj	f9d1b9b151b0b7d2
+4301	4848	8008117123812473	esp-idf/esp_hal_dma/CMakeFiles/__idf_esp_hal_dma.dir/esp32s3/gdma_periph.c.obj	c70e6165b56c506e
+4116	4899	8008117121956807	esp-idf/efuse/libefuse.a	667c0172a9e86e08
+4175	4929	8008117122556320	esp-idf/esp_hal_gpspi/CMakeFiles/__idf_esp_hal_gpspi.dir/spi_slave_hd_hal.c.obj	291f4083a987e1ec
+3952	4946	8008117120315617	esp-idf/esp_hal_gpspi/CMakeFiles/__idf_esp_hal_gpspi.dir/spi_hal_iram.c.obj	d43ecc5d9685f3ae
+4946	5572	8008117130264205	esp-idf/hal/CMakeFiles/__idf_hal.dir/hal_utils.c.obj	9830716a3000b666
+4376	5079	8008117124560243	esp-idf/esp_hal_pmu/CMakeFiles/__idf_esp_hal_pmu.dir/esp32s3/rtc_cntl_hal.c.obj	a76eac9d1c3b324e
+4411	5133	8008117124915533	esp-idf/esp_hal_usb/CMakeFiles/__idf_esp_hal_usb.dir/usb_wrap_hal.c.obj	4d4abe8238f73c7d
+4567	5361	8008117126468304	esp-idf/esp_hal_usb/CMakeFiles/__idf_esp_hal_usb.dir/usb_serial_jtag_hal.c.obj	10df4712dec26f50
+4592	5374	8008117126708685	esp-idf/esp_hal_gpio/CMakeFiles/__idf_esp_hal_gpio.dir/gpio_hal.c.obj	83c3161023802e79
+4849	5394	8008117129270223	esp-idf/esp_hal_gpio/CMakeFiles/__idf_esp_hal_gpio.dir/esp32s3/dedic_gpio_periph.c.obj	a5ec11c7d8f91e73
+4841	5421	8008117129204398	esp-idf/esp_hal_gpio/CMakeFiles/__idf_esp_hal_gpio.dir/esp32s3/rtc_io_periph.c.obj	49c77c27c8e32558
+8341	8477	8008117164211375	esp-idf/micro-ecc/libmicro-ecc.a	5ce1563f3674030a
+4386	5441	8008117124653488	esp-idf/esp_hal_usb/CMakeFiles/__idf_esp_hal_usb.dir/usb_dwc_hal.c.obj	daf53b7b691af2ae
+4792	5455	8008117128724880	esp-idf/esp_hal_gpio/CMakeFiles/__idf_esp_hal_gpio.dir/rtc_io_hal.c.obj	c1440ca56746c868
+39	150492	8008189139366470	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hw_support/mspi_timing_tuning/port/esp32s3/cmake_install.cmake	3b1f4c83a9ca1b7f
+5009	5552	8008117130889344	esp-idf/hal/CMakeFiles/__idf_hal.dir/efuse_hal.c.obj	28979904ce71e83c
+5455	5964	8008117135345142	esp-idf/soc/CMakeFiles/__idf_soc.dir/esp32s3/mpi_periph.c.obj	c3c60300740b95db
+5080	5980	8008117131595901	esp-idf/hal/CMakeFiles/__idf_hal.dir/esp32s3/efuse_hal.c.obj	903f92a481950bcc
+5441	6089	8008117135202932	esp-idf/soc/CMakeFiles/__idf_soc.dir/esp32s3/gpio_periph.c.obj	47d668a40a100101
+4899	6093	8008117129789910	esp-idf/bootloader_support/libbootloader_support.a	e9e2988ab3670bdc
+9302	9393	8008117173822985	esp-idf/main/libmain.a	df10fcae05f14623
+4929	6109	8008117130085516	esp-idf/esp_hal_gpio/CMakeFiles/__idf_esp_hal_gpio.dir/esp32s3/sdm_periph.c.obj	f32b681b6306d1f0
+39	150492	8008189136841475	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hal_rtc_timer/cmake_install.cmake	3b1f4c83a9ca1b7f
+5133	6110	8008117132119115	esp-idf/hal/CMakeFiles/__idf_hal.dir/mmu_hal.c.obj	33211b9cb416ff5d
+5964	6258	8008117142479043	project_elf_src_esp32s3.c	760847ed2eff42fb
+5964	6258	8008117142479043	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/project_elf_src_esp32s3.c	760847ed2eff42fb
+5552	6327	8008117136322658	esp-idf/soc/CMakeFiles/__idf_soc.dir/esp32s3/power_supply_periph.c.obj	274496eaaee1e87a
+5514	6327	8008117135933691	esp-idf/soc/CMakeFiles/__idf_soc.dir/esp32s3/sdmmc_periph.c.obj	2ecd469032ac3f83
+39	150492	8008189132868814	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hal_gpspi/cmake_install.cmake	3b1f4c83a9ca1b7f
+5925	6450	8008117140050239	esp-idf/xtensa/CMakeFiles/__idf_xtensa.dir/eri.c.obj	e7bebe9f2abedb3d
+5361	6337	8008117134401018	esp-idf/hal/CMakeFiles/__idf_hal.dir/cache_hal.c.obj	1733fe31652e3a1d
+5572	6412	8008117144736513	ld/bootloader.ld	f0b66bc6d147f2d
+5572	6412	8008117144736513	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/ld/bootloader.ld	f0b66bc6d147f2d
+5955	6441	8008117140343867	esp-idf/xtensa/CMakeFiles/__idf_xtensa.dir/xt_trax.c.obj	6b70e01a8420d7d2
+4360	6621	8008117124401184	esp-idf/micro-ecc/CMakeFiles/__idf_micro-ecc.dir/uECC_verify_antifault.c.obj	377449e0be0238b2
+6093	6672	8008117141728867	esp-idf/esp_security/libesp_security.a	c816f1438e3ed50b
+6420	6780	8008117144998456	CMakeFiles/bootloader.elf.dir/project_elf_src_esp32s3.c.obj	b1e97b971cb02c46
+39	150492	8008189137252033	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_security/cmake_install.cmake	3b1f4c83a9ca1b7f
+6412	6907	8008117144913120	esp-idf/main/CMakeFiles/__idf_main.dir/bootloader_start.c.obj	915be28aca1f49d
+6672	6992	8008117147509762	esp-idf/esp_hal_security/libesp_hal_security.a	8fcba43d664695fd
+6992	7174	8008117150716036	esp-idf/esp_hal_ana_conv/libesp_hal_ana_conv.a	72f9d9ce74f293e4
+7321	7484	8008117154004393	esp-idf/esp_hal_wdt/libesp_hal_wdt.a	4b80e1c97d0cbace
+7484	7632	8008117155629028	esp-idf/esp_hal_timg/libesp_hal_timg.a	88bc594cfc038710
+7633	7769	8008117157121131	esp-idf/esp_bootloader_format/libesp_bootloader_format.a	c75565bfe63d81d4
+7769	7903	8008117158493914	esp-idf/spi_flash/libspi_flash.a	33d85a6ad23c359c
+7903	8027	8008117159827020	esp-idf/esp_hal_clock/libesp_hal_clock.a	f21e1792185d41a8
+8027	8220	8008117161076589	esp-idf/esp_hal_gpspi/libesp_hal_gpspi.a	85dc3ddcdbaa22c2
+39	150492	8008189137483634	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/bootloader_support/cmake_install.cmake	3b1f4c83a9ca1b7f
+8220	8341	8008117163001694	esp-idf/esp_hal_dma/libesp_hal_dma.a	d9e26422b7e9c80a
+8477	8658	8008117165579665	esp-idf/esp_hal_pmu/libesp_hal_pmu.a	510e9f24b902c837
+8659	8833	8008117167371921	esp-idf/esp_hal_usb/libesp_hal_usb.a	261c9b5c6a396c52
+8969	9094	8008117170490409	esp-idf/hal/libhal.a	1018f727422fa3c3
+9094	9202	8008117171739837	esp-idf/soc/libsoc.a	4351ab00e4812f66
+9203	9302	8008117172823445	esp-idf/xtensa/libxtensa.a	a8ef2ede8c30000a
+9393	10224	8008117174664028	bootloader.elf	9e8eb2ceb0259dbc
+10224	10970	8008117190423023	.bin_timestamp	c723282fad690767
+10224	10970	8008117190423023	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/.bin_timestamp	c723282fad690767
+51	208	8008182577325323	CMakeFiles/bootloader_check_size	fa3974ee5bd05391
+51	208	8008182577325323	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/CMakeFiles/bootloader_check_size	fa3974ee5bd05391
+39	150492	8008189129138471	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189129287922	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/xtensa/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189129330944	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_libc/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189130286809	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/soc/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189130426323	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/hal/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189131379146	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hal_usb/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189131513559	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hal_pmu/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189132646569	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hal_dma/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189132470206	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/micro-ecc/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189133069948	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hal_mspi/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189134423270	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/spi_flash/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189134528107	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_bootloader_format/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189134598986	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_app_format/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189134740086	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/partition_table/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189134800866	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esptool_py/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189135468556	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hal_timg/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189136365884	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hal_uart/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189139270122	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hw_support/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189136809132	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hal_ana_conv/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189138152874	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/efuse/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189138283854	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_system/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189139324039	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hw_support/port/esp32s3/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189140340542	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_rom/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189141485492	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/freertos/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189141228824	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/log/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189141333063	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/bootloader/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189141414554	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_stdio/cmake_install.cmake	3b1f4c83a9ca1b7f
+39	150492	8008189142066333	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/main/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	build.ninja	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/xtensa/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_libc/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/soc/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/hal/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hal_gpio/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hal_usb/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hal_pmu/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/micro-ecc/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hal_dma/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hal_gpspi/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hal_clock/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hal_mspi/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_blockdev/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/spi_flash/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_bootloader_format/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_app_format/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/partition_table/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esptool_py/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hal_timg/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hal_wdt/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hal_uart/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hal_ana_conv/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hal_rtc_timer/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hal_security/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_security/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/bootloader_support/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/efuse/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_system/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hw_support/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hw_support/port/esp32s3/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hw_support/mspi_timing_tuning/port/esp32s3/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_hw_support/lowpower/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_common/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_rom/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/log/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/bootloader/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/esp_stdio/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/freertos/cmake_install.cmake	3b1f4c83a9ca1b7f
+19	153037	8008189142381575	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/esp-idf/main/cmake_install.cmake	3b1f4c83a9ca1b7f
+158	1887	8008189149743869	esp-idf/log/CMakeFiles/__idf_log.dir/src/util.c.obj	30dd9d17bc339e7f
+166	2374	8008189149827577	esp-idf/log/CMakeFiles/__idf_log.dir/src/log_format_text.c.obj	36bf0330180568ca
+177	2524	8008189149931252	esp-idf/log/CMakeFiles/__idf_log.dir/src/log_print.c.obj	eb557d13a379df3b
+251	2583	8008189150672228	esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/patches/esp_rom_efuse.c.obj	a887d66e7d9f0e27
+131	2656	8008189149479458	esp-idf/log/CMakeFiles/__idf_log.dir/src/log_timestamp_common.c.obj	493e1ffa3620e3ed
+142	2746	8008189149587992	esp-idf/log/CMakeFiles/__idf_log.dir/src/noos/log_lock.c.obj	213d14adc755df73
+193	2778	8008189150090064	esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/patches/esp_rom_sys.c.obj	3d5319a5d712df13
+223	2877	8008189150393056	esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/patches/esp_rom_crc.c.obj	3fae4668ce4585dd
+200	2951	8008189150153356	esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/patches/esp_rom_print.c.obj	d7e0db8945a68d19
+150	2987	8008189149666808	esp-idf/log/CMakeFiles/__idf_log.dir/src/buffer/log_buffers.c.obj	9477796b46c02a40
+186	3035	8008189150009959	esp-idf/log/CMakeFiles/__idf_log.dir/src/log.c.obj	47548ccdf3dd4342
+234	3303	8008189150504737	esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/patches/esp_rom_serial_output.c.obj	1121008774cb9d83
+121	3311	8008189149372247	esp-idf/log/CMakeFiles/__idf_log.dir/src/noos/log_timestamp.c.obj	d2ac888f2251aac3
+243	3347	8008189150591774	esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/patches/esp_rom_spiflash.c.obj	859b290a9b065366
+1888	4025	8008189167040887	esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/patches/esp_rom_gpio.c.obj	72c80857e793011d
+2375	4144	8008189171911370	esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/patches/esp_rom_longjmp.S.obj	8ecf75cb2cad3288
+2584	4945	8008189174000722	esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/patches/esp_rom_cache_esp32s2_esp32s3.c.obj	4a2b4e65bad7583e
+2657	5068	8008189174731795	esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/patches/esp_rom_cache_writeback_esp32s3.S.obj	50d7513071c735f7
+2877	5427	8008189176934355	esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/port/esp32s3/esp_cpu_intr.c.obj	c8aa2e9ea54fd5da
+2524	5725	8008189173401061	esp-idf/esp_rom/CMakeFiles/__idf_esp_rom.dir/patches/esp_rom_systimer.c.obj	f4cbe466d812c5c4
+2951	5733	8008189177673939	esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/esp_memory_utils.c.obj	dca26f46aa5bc0a7
+3304	5742	8008189181194603	esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/port/esp32s3/rtc_clk_init.c.obj	b057e629a1dc944a
+2746	5833	8008189175623251	esp-idf/esp_common/CMakeFiles/__idf_esp_common.dir/src/esp_err_to_name.c.obj	b792c5f3cc579b62
+2778	5898	8008189175945748	esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/cpu.c.obj	6adc619774e81d6b
+2987	6122	8008189178032870	esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/port/esp32s3/cpu_region_protect.c.obj	67f913eba9b6817f
+3347	6786	8008189181634572	esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/port/esp32s3/rtc_init.c.obj	f4b2c73656c71847
+3035	6892	8008189178517347	esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/port/esp32s3/rtc_clk.c.obj	ff8e1fd9de6d7d50
+4025	7837	8008189188410813	esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/port/esp32s3/rtc_sleep.c.obj	982ca88a63fbe974
+5427	8095	8008189202436489	esp-idf/efuse/CMakeFiles/__idf_efuse.dir/esp32s3/esp_efuse_table.c.obj	ad22bcc2cdbba5d9
+4145	8103	8008189189603474	esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/port/esp32s3/rtc_time.c.obj	e81924dfe78c7b4b
+3311	8694	8008189181264430	esp-idf/log/liblog.a	ac01bc17f2af3975
+4946	8710	8008189197616318	esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/port/esp32s3/chip_info.c.obj	196bcba84dc7e402
+5899	8894	8008189207149167	esp-idf/efuse/CMakeFiles/__idf_efuse.dir/src/esp_efuse_fields.c.obj	527d478c54d3ba71
+5725	8984	8008189205411126	esp-idf/efuse/CMakeFiles/__idf_efuse.dir/esp32s3/esp_efuse_fields.c.obj	18fd07b2de3c3c64
+5068	8994	8008189198841339	esp-idf/esp_system/CMakeFiles/__idf_esp_system.dir/esp_err.c.obj	c4817e574c8dbd17
+5742	9231	8008189205573198	esp-idf/efuse/CMakeFiles/__idf_efuse.dir/esp32s3/esp_efuse_utility.c.obj	a4df6451dfc58814
+5733	9347	8008189205483838	esp-idf/efuse/CMakeFiles/__idf_efuse.dir/esp32s3/esp_efuse_rtc_calib.c.obj	d389c6f673c13d89
+6892	9456	8008189217084697	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_common.c.obj	eb64cf7a3ce9e9be
+6123	9620	8008189209389012	esp-idf/efuse/CMakeFiles/__idf_efuse.dir/src/esp_efuse_utility.c.obj	d6a256e7b6dc5eef
+5833	10453	8008189206492966	esp-idf/efuse/CMakeFiles/__idf_efuse.dir/src/esp_efuse_api.c.obj	326d5cfa9667bf9b
+8104	10476	8008189229197407	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_mem.c.obj	5f90d73fa04af5eb
+6786	11710	8008189216025674	esp-idf/efuse/CMakeFiles/__idf_efuse.dir/src/efuse_controller/keys/with_key_purposes/esp_efuse_api_key.c.obj	77b700c080377639
+8998	12064	8008189238147512	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/secure_boot.c.obj	178eb5f9f237157b
+8710	12326	8008189235265773	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_random.c.obj	f6170692b43189e7
+8095	12336	8008189229117654	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_clock_init.c.obj	9823d5ba6a3ebc91
+7837	12345	8008189226537008	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_common_loader.c.obj	1b4ce7fa357238ce
+9456	12515	8008189242724517	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/bootloader_flash/src/flash_qio_mode.c.obj	8085f8e7d5ec83d4
+9620	12525	8008189244361818	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/bootloader_flash/src/bootloader_flash_config_esp32s3.c.obj	779b73b6a83689b3
+8894	12536	8008189237097050	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_efuse.c.obj	4dd331a497f76bec
+9231	12864	8008189240476182	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_random_esp32s3.c.obj	6084ddda1a58bd91
+10476	13067	8008189252922503	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/flash_partitions.c.obj	7f7fd0bd78ae6866
+8985	13205	8008189238012223	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/flash_encrypt.c.obj	a35414c952d45a4c
+8694	13467	8008189235098836	esp-idf/esp_rom/libesp_rom.a	5833662ed644a6dc
+12336	14955	8008189271515720	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_clock_loader.c.obj	528e60636be9932a
+12064	15007	8008189268804988	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_sha.c.obj	ee58bb32dde5d6d4
+12345	15017	8008189271606621	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_console.c.obj	b81aa8767883c8ec
+10453	15026	8008189252697149	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_utility.c.obj	c007ea087aae1f9c
+9347	15035	8008189241634913	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/bootloader_flash/src/bootloader_flash.c.obj	e0e30377f401688a
+12525	15445	8008189273411050	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/esp32s3/bootloader_soc.c.obj	b69a56dfb1a2dedc
+12515	15514	8008189273319535	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_console_loader.c.obj	a88a1cf1aceb2ae7
+13067	15873	8008189278828934	esp-idf/esp_security/CMakeFiles/__idf_esp_security.dir/src/esp_crypto_lock.c.obj	f3fac688def34951
+13205	16293	8008189280211560	esp-idf/esp_security/CMakeFiles/__idf_esp_security.dir/src/esp_crypto_periph_clk.c.obj	ffbcf58319fdf602
+12326	16595	8008189271422586	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_init.c.obj	d2a109b591ab8703
+12536	16888	8008189273514307	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/esp32s3/bootloader_esp32s3.c.obj	8605dfd145956e08
+12864	16907	8008189276806991	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/bootloader_panic.c.obj	91e44e2c686acb2c
+11710	17168	8008189265266696	esp-idf/bootloader_support/CMakeFiles/__idf_bootloader_support.dir/src/esp_image_format.c.obj	5da3d28713c64a68
+14955	17481	8008189297712123	esp-idf/esp_hal_security/CMakeFiles/__idf_esp_hal_security.dir/mpu_hal.c.obj	b0dd89e86ff025da
+15017	17626	8008189298337239	esp-idf/esp_hal_ana_conv/CMakeFiles/__idf_esp_hal_ana_conv.dir/adc_hal_common.c.obj	7c1d6181b70006fe
+15445	17635	8008189302609565	esp-idf/esp_hal_ana_conv/CMakeFiles/__idf_esp_hal_ana_conv.dir/temperature_sensor_hal.c.obj	f7f868a5980ee16c
+15514	17644	8008189303294703	esp-idf/esp_hal_ana_conv/CMakeFiles/__idf_esp_hal_ana_conv.dir/esp32s3/temperature_sensor_periph.c.obj	b6e2399da7362c72
+15035	17968	8008189298514070	esp-idf/esp_hal_ana_conv/CMakeFiles/__idf_esp_hal_ana_conv.dir/adc_hal.c.obj	e4de010fdb1bbed4
+15008	18002	8008189298241009	esp-idf/esp_hal_ana_conv/CMakeFiles/__idf_esp_hal_ana_conv.dir/esp32s3/adc_periph.c.obj	dfa37ec78b17ac68
+13467	18393	8008189282832279	esp-idf/esp_common/libesp_common.a	def3b22940395b6b
+15026	18415	8008189298427170	esp-idf/esp_hal_ana_conv/CMakeFiles/__idf_esp_hal_ana_conv.dir/adc_oneshot_hal.c.obj	bf863867d030dc23
+16595	19102	8008189314114024	esp-idf/esp_hal_uart/CMakeFiles/__idf_esp_hal_uart.dir/esp32s3/uart_periph.c.obj	c4f161d8dac3b5aa
+16293	19185	8008189311093075	esp-idf/esp_hal_uart/CMakeFiles/__idf_esp_hal_uart.dir/uart_hal_iram.c.obj	68084687bd225c52
+15873	19244	8008189306890602	esp-idf/esp_hal_uart/CMakeFiles/__idf_esp_hal_uart.dir/uart_hal.c.obj	1c5586ec6308434e
+16888	19282	8008189317044579	esp-idf/esp_hal_uart/CMakeFiles/__idf_esp_hal_uart.dir/uhci_hal.c.obj	8b692a7dc6583bd0
+17168	19291	8008189319841569	esp-idf/esp_hal_wdt/CMakeFiles/__idf_esp_hal_wdt.dir/xt_wdt_hal.c.obj	cd88c4d90582b1d5
+16907	20079	8008189317239354	esp-idf/esp_hal_wdt/CMakeFiles/__idf_esp_hal_wdt.dir/rom_patch.c.obj	931abf0f63e3aef7
+17481	20270	8008189322975145	esp-idf/esp_hal_timg/CMakeFiles/__idf_esp_hal_timg.dir/timer_hal.c.obj	648d18df8ac530a8
+18003	20332	8008189328190680	esp-idf/esp_hal_gpspi/CMakeFiles/__idf_esp_hal_gpspi.dir/esp32s3/spi_periph.c.obj	3e97f29d12ddbc11
+17626	20430	8008189324421204	esp-idf/esp_hal_timg/CMakeFiles/__idf_esp_hal_timg.dir/esp32s3/timer_periph.c.obj	495b310cb0a89f58
+17968	21182	8008189327836623	esp-idf/esp_hal_clock/CMakeFiles/__idf_esp_hal_clock.dir/esp32s3/clk_tree_hal.c.obj	9266fa1d8981fd97
+17645	21420	8008189324611144	esp-idf/spi_flash/CMakeFiles/__idf_spi_flash.dir/spi_flash_wrap.c.obj	88736beff941b379
+18415	21698	8008189332315461	esp-idf/esp_hal_gpspi/CMakeFiles/__idf_esp_hal_gpspi.dir/spi_hal.c.obj	d54c767b62cdb897
+17636	22181	8008189324518929	esp-idf/esp_bootloader_format/CMakeFiles/__idf_esp_bootloader_format.dir/esp_bootloader_desc.c.obj	c51ea2fd39ca64d9
+19292	22328	8008189341078842	esp-idf/esp_hal_dma/CMakeFiles/__idf_esp_hal_dma.dir/gdma_hal_top.c.obj	f9d1b9b151b0b7d2
+20080	22896	8008189348957253	esp-idf/esp_hal_dma/CMakeFiles/__idf_esp_hal_dma.dir/esp32s3/gdma_periph.c.obj	c70e6165b56c506e
+19244	23013	8008189340595443	esp-idf/esp_hal_gpspi/CMakeFiles/__idf_esp_hal_gpspi.dir/spi_slave_hal_iram.c.obj	af4aaae1eb888d28
+19282	23972	8008189340990509	esp-idf/esp_hal_gpspi/CMakeFiles/__idf_esp_hal_gpspi.dir/spi_slave_hd_hal.c.obj	291f4083a987e1ec
+20270	23982	8008189350867800	esp-idf/esp_hal_dma/CMakeFiles/__idf_esp_hal_dma.dir/gdma_hal_ahb_v1.c.obj	cd46fedc72e7205b
+21698	24182	8008189365145659	esp-idf/esp_hal_usb/CMakeFiles/__idf_esp_hal_usb.dir/esp32s3/usb_dwc_periph.c.obj	fbbd7774130279f0
+19102	24261	8008189339181743	esp-idf/esp_hal_gpspi/CMakeFiles/__idf_esp_hal_gpspi.dir/spi_hal_iram.c.obj	d43ecc5d9685f3ae
+21420	24309	8008189362364866	esp-idf/esp_hal_usb/CMakeFiles/__idf_esp_hal_usb.dir/usb_wrap_hal.c.obj	4d4abe8238f73c7d
+20430	24442	8008189352463080	esp-idf/esp_hal_pmu/CMakeFiles/__idf_esp_hal_pmu.dir/esp32s3/rtc_cntl_hal.c.obj	a76eac9d1c3b324e
+18393	24572	8008189332086701	esp-idf/esp_hw_support/libesp_hw_support.a	ea74c9681baf3c82
+19185	24777	8008189340008350	esp-idf/esp_hal_gpspi/CMakeFiles/__idf_esp_hal_gpspi.dir/spi_slave_hal.c.obj	6a31abfb25f41897
+22181	24939	8008189369975723	esp-idf/esp_hal_usb/CMakeFiles/__idf_esp_hal_usb.dir/usb_serial_jtag_hal.c.obj	10df4712dec26f50
+21183	25042	8008189359988249	esp-idf/esp_hal_usb/CMakeFiles/__idf_esp_hal_usb.dir/usb_dwc_hal.c.obj	daf53b7b691af2ae
+23013	25498	8008189378292997	esp-idf/esp_hal_gpio/CMakeFiles/__idf_esp_hal_gpio.dir/esp32s3/rtc_io_periph.c.obj	49c77c27c8e32558
+22328	25540	8008189371442417	esp-idf/esp_hal_gpio/CMakeFiles/__idf_esp_hal_gpio.dir/gpio_hal.c.obj	83c3161023802e79
+23972	26429	8008189387882413	esp-idf/esp_hal_gpio/CMakeFiles/__idf_esp_hal_gpio.dir/esp32s3/dedic_gpio_periph.c.obj	a5ec11c7d8f91e73
+22896	26846	8008189377121847	esp-idf/esp_hal_gpio/CMakeFiles/__idf_esp_hal_gpio.dir/rtc_io_hal.c.obj	c1440ca56746c868
+24443	26963	8008189392591802	esp-idf/hal/CMakeFiles/__idf_hal.dir/esp32s3/efuse_hal.c.obj	903f92a481950bcc
+24310	27167	8008189391254396	esp-idf/hal/CMakeFiles/__idf_hal.dir/efuse_hal.c.obj	28979904ce71e83c
+24182	27176	8008189389981965	esp-idf/esp_hal_gpio/CMakeFiles/__idf_esp_hal_gpio.dir/esp32s3/sdm_periph.c.obj	f32b681b6306d1f0
+23982	27404	8008189387980601	esp-idf/esp_hal_gpio/CMakeFiles/__idf_esp_hal_gpio.dir/sdm_hal.c.obj	ea328091a75cfaa4
+24261	27508	8008189390771524	esp-idf/hal/CMakeFiles/__idf_hal.dir/hal_utils.c.obj	9830716a3000b666
+20332	27518	8008189351481672	esp-idf/micro-ecc/CMakeFiles/__idf_micro-ecc.dir/uECC_verify_antifault.c.obj	377449e0be0238b2
+24939	27625	8008189397551717	esp-idf/hal/CMakeFiles/__idf_hal.dir/cache_hal.c.obj	1733fe31652e3a1d
+25540	27841	8008189403559194	esp-idf/soc/CMakeFiles/__idf_soc.dir/esp32s3/interrupts.c.obj	7f975216fc7f5067
+24777	28662	8008189395931114	esp-idf/hal/CMakeFiles/__idf_hal.dir/mmu_hal.c.obj	33211b9cb416ff5d
+25043	28773	8008189398588231	esp-idf/soc/CMakeFiles/__idf_soc.dir/lldesc.c.obj	e6dd823ef051e448
+25498	28807	8008189403142294	esp-idf/soc/CMakeFiles/__idf_soc.dir/dport_access_common.c.obj	fcbe19d0fccb2b6e
+26846	28880	8008189416622308	esp-idf/soc/CMakeFiles/__idf_soc.dir/esp32s3/mpi_periph.c.obj	c3c60300740b95db
+26964	29660	8008189417799364	esp-idf/soc/CMakeFiles/__idf_soc.dir/esp32s3/sdmmc_periph.c.obj	2ecd469032ac3f83
+26430	29664	8008189412462029	esp-idf/soc/CMakeFiles/__idf_soc.dir/esp32s3/gpio_periph.c.obj	47d668a40a100101
+27167	29740	8008189419833494	esp-idf/soc/CMakeFiles/__idf_soc.dir/esp32s3/power_supply_periph.c.obj	274496eaaee1e87a
+27405	29785	8008189422207672	esp-idf/xtensa/CMakeFiles/__idf_xtensa.dir/eri.c.obj	e7bebe9f2abedb3d
+27509	29809	8008189423249346	esp-idf/xtensa/CMakeFiles/__idf_xtensa.dir/xt_trax.c.obj	6b70e01a8420d7d2
+24572	30018	8008189393886693	esp-idf/esp_system/libesp_system.a	fd4ea2f09d32f821
+27176	30079	8008189446420138	ld/bootloader.ld	f0b66bc6d147f2d
+27176	30079	8008189446420138	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/ld/bootloader.ld	f0b66bc6d147f2d
+30079	31953	8008189448951949	esp-idf/main/CMakeFiles/__idf_main.dir/bootloader_start.c.obj	915be28aca1f49d
+30018	33490	8008189448343519	esp-idf/efuse/libefuse.a	667c0172a9e86e08
+33490	36373	8008189483061292	esp-idf/bootloader_support/libbootloader_support.a	e9e2988ab3670bdc
+36373	38589	8008189511895860	esp-idf/esp_security/libesp_security.a	c816f1438e3ed50b
+38589	40762	8008189534055160	esp-idf/esp_hal_security/libesp_hal_security.a	8fcba43d664695fd
+40762	42806	8008189555788253	esp-idf/esp_hal_ana_conv/libesp_hal_ana_conv.a	72f9d9ce74f293e4
+42806	44589	8008189576226265	esp-idf/esp_hal_uart/libesp_hal_uart.a	cdba7a87f5d3fb91
+44589	46718	8008189594055625	esp-idf/esp_hal_wdt/libesp_hal_wdt.a	4b80e1c97d0cbace
+46718	48397	8008189615343654	esp-idf/esp_hal_timg/libesp_hal_timg.a	88bc594cfc038710
+48397	49972	8008189632126514	esp-idf/esp_bootloader_format/libesp_bootloader_format.a	c75565bfe63d81d4
+49973	51020	8008189647884169	esp-idf/spi_flash/libspi_flash.a	33d85a6ad23c359c
+51020	51456	8008189658362501	esp-idf/esp_hal_clock/libesp_hal_clock.a	f21e1792185d41a8
+51456	51912	8008189662726821	esp-idf/esp_hal_gpspi/libesp_hal_gpspi.a	85dc3ddcdbaa22c2
+51912	52393	8008189667285687	esp-idf/esp_hal_dma/libesp_hal_dma.a	d9e26422b7e9c80a
+52393	52927	8008189672095914	esp-idf/micro-ecc/libmicro-ecc.a	5ce1563f3674030a
+52927	53316	8008189677434620	esp-idf/esp_hal_pmu/libesp_hal_pmu.a	510e9f24b902c837
+53316	53668	8008189681321503	esp-idf/esp_hal_usb/libesp_hal_usb.a	261c9b5c6a396c52
+53668	54131	8008189684847445	esp-idf/esp_hal_gpio/libesp_hal_gpio.a	d44eb532a94d2364
+54131	54591	8008189689473492	esp-idf/hal/libhal.a	1018f727422fa3c3
+54591	55006	8008189694075080	esp-idf/soc/libsoc.a	4351ab00e4812f66
+55006	55316	8008189698216543	esp-idf/xtensa/libxtensa.a	a8ef2ede8c30000a
+55316	55622	8008189701328019	esp-idf/main/libmain.a	df10fcae05f14623
+55622	56294	8008189704386847	bootloader.elf	9e8eb2ceb0259dbc
+56295	57487	8008189722801397	.bin_timestamp	c723282fad690767
+56295	57487	8008189722801397	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/.bin_timestamp	c723282fad690767
+57487	57874	8008189723020993	CMakeFiles/bootloader_check_size	fa3974ee5bd05391
+57487	57874	8008189723020993	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/CMakeFiles/bootloader_check_size	fa3974ee5bd05391
+41	495	8009958269027412	CMakeFiles/bootloader_check_size	fa3974ee5bd05391
+41	495	8009958269027412	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/CMakeFiles/bootloader_check_size	fa3974ee5bd05391
+61	326	8009958557656850	CMakeFiles/bootloader_check_size	fa3974ee5bd05391
+61	326	8009958557656850	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/CMakeFiles/bootloader_check_size	fa3974ee5bd05391
+41	209	8009959021695193	CMakeFiles/bootloader_check_size	fa3974ee5bd05391
+41	209	8009959021695193	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/CMakeFiles/bootloader_check_size	fa3974ee5bd05391
+48	195	8009966339571568	CMakeFiles/bootloader_check_size	fa3974ee5bd05391
+48	195	8009966339571568	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/CMakeFiles/bootloader_check_size	fa3974ee5bd05391
+38	136	8009966861445550	CMakeFiles/bootloader_check_size	fa3974ee5bd05391
+38	136	8009966861445550	C:/Users/Nathan/Documents/EmbarcaTech Residencia - Nathan/VitalKare/firmware/build/bootloader/CMakeFiles/bootloader_check_size	fa3974ee5bd05391

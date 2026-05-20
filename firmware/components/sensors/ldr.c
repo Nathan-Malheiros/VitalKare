@@ -45,7 +45,8 @@ esp_err_t ldr_init(void)
         return ret;
     }
 
-    /* ---- Calibração (Curve Fitting — ESP32-S3) ---- */
+    /* ---- Calibração (Curve Fitting p/ ESP32-S3/S2/C3; Line Fitting p/ ESP32) ---- */
+#if ADC_CALI_SCHEME_CURVE_FITTING_SUPPORTED
     adc_cali_curve_fitting_config_t cali_cfg = {
         .unit_id  = HW_LDR_ADC_UNIT,
         .atten    = HW_LDR_ADC_ATTENUATION,
@@ -53,7 +54,18 @@ esp_err_t ldr_init(void)
     };
     if (adc_cali_create_scheme_curve_fitting(&cali_cfg, &s_cali_handle) == ESP_OK) {
         s_calibrated = true;
-    } else {
+    }
+#elif ADC_CALI_SCHEME_LINE_FITTING_SUPPORTED
+    adc_cali_line_fitting_config_t cali_cfg = {
+        .unit_id   = HW_LDR_ADC_UNIT,
+        .atten     = HW_LDR_ADC_ATTENUATION,
+        .bitwidth  = HW_LDR_ADC_BITS,
+    };
+    if (adc_cali_create_scheme_line_fitting(&cali_cfg, &s_cali_handle) == ESP_OK) {
+        s_calibrated = true;
+    }
+#endif
+    if (!s_calibrated) {
         ESP_LOGW(TAG, "Calibração ADC não disponível — usando conversão raw");
     }
 
