@@ -53,8 +53,18 @@ typedef enum {
 
 /* =========================================================
  * FRAME ENFILEIRADO — item nas filas de saída
+ * =========================================================
+ * CORRIGIDO: o valor anterior (VK_HEADER_SIZE + 256 + VK_CRC_SIZE = 267 bytes)
+ * era menor que um frame de áudio ADPCM típico:
+ *   VK_HEADER(9) + pkt_audio_chunk_header(8) + ADPCM(2048) + CRC(2) = 2067 bytes
+ * Resultado: enqueue_frame() rejeitava silenciosamente TODOS os chunks de áudio
+ * com "Frame muito grande para fila" → nenhum áudio chegava ao servidor.
+ *
+ * Novo tamanho: 2176 bytes acomoda o maior frame regular do sistema (áudio ADPCM).
+ * Custo: normal_queue(32) + critical_queue(8) = 40 × 2178 bytes ≈ 87 KB de heap,
+ * aceitável para o ESP32-S3 com 512 KB de SRAM interna.
  * ========================================================= */
-#define TCP_FRAME_BUF_SIZE  (VK_HEADER_SIZE + 256 + VK_CRC_SIZE)
+#define TCP_FRAME_BUF_SIZE  2176u
 
 typedef struct {
     uint8_t  frame[TCP_FRAME_BUF_SIZE];

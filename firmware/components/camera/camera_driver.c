@@ -6,17 +6,30 @@
  * Adicione firmware/idf_component.yml com:
  *   dependencies:
  *     espressif/esp32-camera: ">=2.0.0"
+ *
+ * ENVIO DE IMAGEM:
+ *   Frames JPEG são enviados sobre TCP usando o VK Protocol.
+ *   Como um frame VGA pode ultrapassar TCP_FRAME_BUF_SIZE, o frame é fragmentado
+ *   em chunks de CAMERA_CHUNK_PAYLOAD_SIZE bytes:
+ *     1. PKT_IMAGE_STREAM_START — metadados (largura, altura, tamanho total)
+ *     2. N × PKT_IMAGE_FRAME    — chunks JPEG consecutivos
+ *   O backend reassembla pela ordem de chegada (sem índice de chunk no payload).
+ *   Imagens são descartadas silenciosamente quando o TCP está offline.
+ *
+ * NOTA: vitalkare_http.h foi removido — o sistema usa exclusivamente TCP persistente.
  */
 
 #include "camera_driver.h"
 #include "esp_camera.h"
 #include "esp_log.h"
 #include "esp_heap_caps.h"
-#include "vitalkare_http.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "../../config/hardware_config.h"
 #include "../../config/app_config.h"
+#include "../network/tcp_client.h"
+#include "../network/vk_protocol.h"
+#include <string.h>
 
 static const char *TAG = "CAMERA";
 
@@ -56,8 +69,12 @@ esp_err_t camera_driver_init(void)
         .pin_pclk    = HW_CAM_PCLK_GPIO,
 
         .xclk_freq_hz = HW_CAM_XCLK_FREQ_HZ,
-        .ledc_timer   = LEDC_TIMER_0,
-        .ledc_channel = LEDC_CHANNEL_0,
+        /* CORRIGIDO: LEDC_TIMER_0/CHANNEL_0 eram compartilhados com o buzzer
+         * (HW_BUZZER_PWM_TIMER/CHANNEL em hardware_config.h). Conflito causava
+         * corrupção do clock XCLK da câmera ao acionar o buzzer.
+         * Câmera usa TIMER_1/CHANNEL_1; buzzer mantém TIMER_0/CHANNEL_0. */
+        .ledc_timer   = LEDC_TIMER_1,
+        .ledc_channel = LEDC_CHANNEL_1,
 
         .pixel_format = PIXFORMAT_JPEG,
         .frame_size   = FRAMESIZE_VGA,   /* 640×480 */
@@ -130,30 +147,88 @@ void camera_frame_free(camera_frame_t *frame)
 }
 
 /* =========================================================
+ * ENVIO DE FRAME JPEG SOBRE TCP (VK Protocol)
+ * =========================================================
+ * Um frame VGA JPEG pode ter 15-40 KB, o que supera TCP_FRAME_BUF_SIZE.
+ * O frame é fragmentado em chunks de CAMERA_CHUNK_PAYLOAD_SIZE bytes cada.
+ * ========================================================= */
+
+/* Cabeçalho de metadados enviado antes dos chunks de dados */
+#pragma pack(push, 1)
+typedef struct {
+    uint32_t total_len;     /**< Tamanho total do JPEG em bytes */
+    uint16_t width;
+    uint16_t height;
+} pkt_image_stream_start_t;
+#pragma pack(pop)
+
+/* Payload máximo por chunk: deixa espaço para header VK + CRC */
+#define CAMERA_CHUNK_PAYLOAD_SIZE  (TCP_FRAME_BUF_SIZE - VK_HEADER_SIZE - VK_CRC_SIZE)
+
+static void send_jpeg_over_tcp(const uint8_t *jpeg_data, size_t jpeg_len,
+                                uint16_t width, uint16_t height)
+{
+    if (!tcp_client_is_connected()) return;
+
+    /* Frame de metadados (PKT_IMAGE_STREAM_START) */
+    static uint8_t s_meta_frame[VK_HEADER_SIZE + sizeof(pkt_image_stream_start_t) + VK_CRC_SIZE];
+    pkt_image_stream_start_t meta = {
+        .total_len = (uint32_t)jpeg_len,
+        .width     = width,
+        .height    = height,
+    };
+    int flen = vk_frame_build(s_meta_frame, sizeof(s_meta_frame),
+                              PKT_IMAGE_STREAM_START, tcp_client_next_seq(),
+                              &meta, sizeof(meta));
+    if (flen > 0) {
+        tcp_client_send_normal(s_meta_frame, (uint16_t)flen);
+    }
+
+    /* Chunks de dados JPEG (PKT_IMAGE_FRAME) */
+    static uint8_t s_chunk_frame[TCP_FRAME_BUF_SIZE];
+    size_t offset = 0;
+    while (offset < jpeg_len) {
+        if (!tcp_client_is_connected()) break;   /* Aborta se TCP cair durante envio */
+
+        size_t chunk = jpeg_len - offset;
+        if (chunk > CAMERA_CHUNK_PAYLOAD_SIZE) chunk = CAMERA_CHUNK_PAYLOAD_SIZE;
+
+        flen = vk_frame_build(s_chunk_frame, sizeof(s_chunk_frame),
+                              PKT_IMAGE_FRAME, tcp_client_next_seq(),
+                              jpeg_data + offset, (uint32_t)chunk);
+        if (flen > 0) {
+            tcp_client_send_normal(s_chunk_frame, (uint16_t)flen);
+        }
+        offset += chunk;
+    }
+}
+
+/* =========================================================
  * TASK DE STREAMING
  * ========================================================= */
 void task_camera_stream(void *arg)
 {
-    ESP_LOGI(TAG, "Task camera_stream iniciada (%d ms/frame)",
-             APP_CAMERA_FRAME_INTERVAL_MS);
+    (void)arg;
+    ESP_LOGI(TAG, "task_camera_stream iniciada (%d ms/frame, chunk=%u B)",
+             APP_CAMERA_FRAME_INTERVAL_MS, (unsigned)CAMERA_CHUNK_PAYLOAD_SIZE);
 
     for (;;) {
-        /* Captura frame a cada APP_CAMERA_FRAME_INTERVAL_MS */
         camera_frame_t frame = {0};
         esp_err_t ret = camera_capture_jpeg(&frame);
+
         if (ret == ESP_OK) {
-            /* Serializa frame JPEG como binário via HTTP */
-            char endpoint[96];
-            snprintf(endpoint, sizeof(endpoint),
-                     "/api/v1/devices/%s/image", APP_DEFAULT_DEVICE_ID);
-            vitalkare_http_post_binary(endpoint,
-                                       frame.data,
-                                       frame.size_bytes,
-                                       "image/jpeg");
+            /* Envia via TCP apenas quando conectado — descarte silencioso offline */
+            if (tcp_client_is_connected()) {
+                send_jpeg_over_tcp(frame.data, frame.size_bytes,
+                                   (uint16_t)frame.width, (uint16_t)frame.height);
+                ESP_LOGD(TAG, "Frame enviado: %dx%d %zu B",
+                         frame.width, frame.height, frame.size_bytes);
+            }
             camera_frame_free(&frame);
         } else {
             ESP_LOGW(TAG, "Captura falhou: %s", esp_err_to_name(ret));
         }
+
         vTaskDelay(pdMS_TO_TICKS(APP_CAMERA_FRAME_INTERVAL_MS));
     }
 }

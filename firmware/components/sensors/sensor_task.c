@@ -71,6 +71,8 @@ void task_sensor_poll(void *arg)
 {
     ESP_LOGI(TAG, "Task sensor_poll iniciada");
 
+    TickType_t last_wake = xTaskGetTickCount();
+
     for (;;) {
         task_monitor_heartbeat(TASK_ID_SENSOR);
         /* ---- HDC1080 ---- */
@@ -135,6 +137,19 @@ void task_sensor_poll(void *arg)
             event_post_normal(&evt);
         }
 
-        vTaskDelay(pdMS_TO_TICKS(APP_SENSOR_POLL_INTERVAL_MS));
+        /* PROBLEMA CORRIGIDO: vTaskDelay(30 s) estava exatamente no limite de
+         * TASK_MONITOR_REBOOT_THRESHOLD_MS (30 s), causando reboots intermitentes
+         * por jitter de agendamento. Solução: vTaskDelayUntil com heartbeat chamado
+         * a cada slice de 10 s (bem abaixo do FAULT_THRESHOLD=15 s). */
+        {
+            const TickType_t slice = pdMS_TO_TICKS(10000);
+            TickType_t remaining   = pdMS_TO_TICKS(APP_SENSOR_POLL_INTERVAL_MS);
+            while (remaining > 0) {
+                TickType_t step = (remaining > slice) ? slice : remaining;
+                vTaskDelayUntil(&last_wake, step);
+                remaining -= step;
+                task_monitor_heartbeat(TASK_ID_SENSOR);
+            }
+        }
     }
 }

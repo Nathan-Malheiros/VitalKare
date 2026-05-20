@@ -104,7 +104,7 @@
 /* =========================================================
  * TCP CLIENT — PROTOCOLO PERSISTENTE
  * ========================================================= */
-#define APP_TCP_SERVER_IP           "192.168.1.100"
+#define APP_TCP_SERVER_IP           "192.168.1.119"
 #define APP_TCP_SERVER_PORT         7890
 #define APP_TCP_CONNECT_TIMEOUT_MS  5000
 #define APP_TCP_RECV_TIMEOUT_MS     100         /**< recv non-blocking tick */
@@ -112,8 +112,13 @@
 #define APP_TCP_HEARTBEAT_MISS_MAX  3           /**< Desconecta após 3 misses */
 #define APP_TCP_RECONNECT_MIN_MS    2000
 #define APP_TCP_RECONNECT_MAX_MS    120000
+/* Each queue slot = sizeof(tcp_queued_frame_t) ≈ 2178 B (includes 2176 B audio
+ * frame buffer). With audio disabled the max frame is ~512 B, but the struct
+ * is fixed-size. TODO: move queue storage to PSRAM to restore depth=32.
+ * Reduced from 32→8 to fit within ~120 KB available internal DRAM at boot
+ * (32 KB is reserved for DMA + NVS + FreeRTOS internals consume ~40 KB). */
 #define APP_TCP_CRITICAL_QUEUE_DEPTH  8
-#define APP_TCP_NORMAL_QUEUE_DEPTH    32
+#define APP_TCP_NORMAL_QUEUE_DEPTH    8
 #define APP_TCP_INCOMING_CMD_DEPTH    8
 #define APP_TCP_MAX_PACKET_PAYLOAD  8192        /**< Payload máximo por pacote */
 

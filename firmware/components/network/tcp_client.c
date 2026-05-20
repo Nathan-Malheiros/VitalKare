@@ -92,7 +92,7 @@ static _Atomic uint16_t s_seq = 0;
  * NORMAL QUEUE (s_normal_queue):
  *   Owner:     tcp_client module
  *   Created:   tcp_client_init()
- *   Depth:     APP_TCP_NORMAL_QUEUE_DEPTH = 32
+ *   Depth:     APP_TCP_NORMAL_QUEUE_DEPTH = 8  (reduced from 32 — see Bug P1)
  *   Producers: Any task via tcp_client_send_normal()
  *              Priority: telemetry, audio chunks, heartbeat pings
  *   Consumer:  task_tcp_tx (sole consumer, processes after draining critical)
@@ -480,8 +480,16 @@ void task_tcp_rx(void *arg)
     size_t         recv_head = 0;
 
     for (;;) {
-        /* Aguarda socket ficar ACTIVE */
-        xEventGroupWaitBits(s_event_grp, TCP_BIT_ACTIVE, pdFALSE, pdTRUE, portMAX_DELAY);
+        /* Aguarda socket ACTIVE com timeout para renovar heartbeat enquanto
+         * desconectado. PROBLEMA CORRIGIDO: portMAX_DELAY bloqueava sem chamar
+         * task_monitor_heartbeat → stall detectado em 15 s → reboot em 30 s
+         * sempre que o TCP estava desconectado. */
+        task_monitor_heartbeat(TASK_ID_TCP_RX);
+        EventBits_t active = xEventGroupWaitBits(
+            s_event_grp, TCP_BIT_ACTIVE, pdFALSE, pdTRUE,
+            pdMS_TO_TICKS(10000));   /* 10 s — bem abaixo de FAULT_THRESHOLD=15 s */
+        if (!(active & TCP_BIT_ACTIVE)) continue;
+
         recv_head = 0;
         vk_validator_reset();  /* Clear sequence window — new session, new seq space */
         ESP_LOGD(TAG_RX, "Socket ACTIVE — recv loop");

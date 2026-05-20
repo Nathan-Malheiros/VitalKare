@@ -63,10 +63,13 @@ static void free_slot(int idx)
 static bool try_send_slot(int idx)
 {
     bool sent;
+    /* CORRIGIDO: o else branch usava indevidamente tcp_client_send_critical()
+     * para todos os QoS, saturando a fila crítica com pacotes de baixa prioridade
+     * e podendo atrasar eventos de emergência. */
     if (s_table[idx].qos == VK_QOS_GUARANTEED) {
         sent = tcp_client_send_critical(s_table[idx].frame, s_table[idx].len);
     } else {
-        sent = tcp_client_send_critical(s_table[idx].frame, s_table[idx].len);
+        sent = tcp_client_send_normal(s_table[idx].frame, s_table[idx].len);
     }
     s_table[idx].last_attempt_us = esp_timer_get_time();
     return sent;

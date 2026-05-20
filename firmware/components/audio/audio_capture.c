@@ -260,10 +260,15 @@ void task_audio_ctrl(void *arg)
     ESP_LOGI(TAG, "task_audio_ctrl iniciada");
 
     for (;;) {
+        /* Aguarda sinal de início com timeout para poder renovar o heartbeat.
+         * PROBLEMA CORRIGIDO: portMAX_DELAY bloqueava indefinidamente → depois
+         * do primeiro heartbeat, o task_monitor detectava stall em 15 s e o
+         * system_manager reiniciava o sistema em 30 s de inatividade de áudio.
+         * Solução: timeout de 10 s (bem abaixo de TASK_MONITOR_WARN_THRESHOLD_MS=5 s
+         * — note que 10 s < FAULT_THRESHOLD_MS=15 s → sem falha detectada). */
         task_monitor_heartbeat(TASK_ID_AUDIO_CTRL);
-        /* Aguarda sinal de início (notificação do event handler) */
         uint32_t notif = 0;
-        xTaskNotifyWait(0, UINT32_MAX, &notif, portMAX_DELAY);
+        xTaskNotifyWait(0, UINT32_MAX, &notif, pdMS_TO_TICKS(10000));
 
         if (!(notif & NOTIFY_START_BIT)) continue;
 

@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"C:\\\\esp\\\\v6.0\\\\esp-idf\\\\export.ps1\")",
+      "Bash(Select-Object -Last 5)",
+      "PowerShell(. \"C:\\\\esp\\\\v6.0\\\\esp-idf\\\\export.ps1\" 2>&1)",
+      "Bash(ls \"C:/esp/\" 2>/dev/null || echo \"not found\")",
+      "Read(//c/esp/**)",
+      "Bash(where idf.py)",
+      "Bash(find /c/Users/Nathan -maxdepth 6 -name \"python_env\" -type d 2>/dev/null | head -5)",
+      "Read(//c/Users/Nathan/**)",
+      "Bash(ls \"C:/Espressif/tools/\" 2>/dev/null)",
+      "Read(//c/Espressif/tools/**)"
+    ]
+  }
+}

@@ -59,7 +59,11 @@ static const char *TAG = "MAX30102";
 /* =========================================================
  * ESTADO INTERNO
  * ========================================================= */
-static bool     s_initialized = false;
+static bool                    s_initialized = false;
+/* Handle do dispositivo I2C — inicializado uma única vez em max30102_init()
+ * CORRIGIDO: anteriormente criado/destruído em cada reg_read/reg_write (a cada 1 s),
+ * causando fragmentação contínua do heap interno. */
+static i2c_master_dev_handle_t s_dev_handle  = NULL;
 
 /* Filtro DC (passa-alta) para detecção de picos */
 static float    s_ir_dc   = 0.0f;
@@ -79,41 +83,16 @@ static max30102_reading_t s_last = {0};
  * ========================================================= */
 static esp_err_t reg_write(uint8_t reg, uint8_t val)
 {
-    i2c_master_bus_handle_t bus = i2c_bus_get_handle();
-    if (!bus) return ESP_ERR_INVALID_STATE;
-
-    i2c_device_config_t dev_cfg = {
-        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
-        .device_address  = MAX30102_I2C_ADDR,
-        .scl_speed_hz    = 400000,
-    };
-    i2c_master_dev_handle_t dev;
-    esp_err_t ret = i2c_master_bus_add_device(bus, &dev_cfg, &dev);
-    if (ret != ESP_OK) return ret;
-
+    if (!s_dev_handle) return ESP_ERR_INVALID_STATE;
     uint8_t buf[2] = { reg, val };
-    ret = i2c_master_transmit(dev, buf, 2, pdMS_TO_TICKS(20));
-    i2c_master_bus_rm_device(dev);
-    return ret;
+    return i2c_master_transmit(s_dev_handle, buf, 2, pdMS_TO_TICKS(20));
 }
 
 static esp_err_t reg_read(uint8_t reg, uint8_t *data, size_t len)
 {
-    i2c_master_bus_handle_t bus = i2c_bus_get_handle();
-    if (!bus) return ESP_ERR_INVALID_STATE;
-
-    i2c_device_config_t dev_cfg = {
-        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
-        .device_address  = MAX30102_I2C_ADDR,
-        .scl_speed_hz    = 400000,
-    };
-    i2c_master_dev_handle_t dev;
-    esp_err_t ret = i2c_master_bus_add_device(bus, &dev_cfg, &dev);
-    if (ret != ESP_OK) return ret;
-
-    ret = i2c_master_transmit_receive(dev, &reg, 1, data, len, pdMS_TO_TICKS(20));
-    i2c_master_bus_rm_device(dev);
-    return ret;
+    if (!s_dev_handle) return ESP_ERR_INVALID_STATE;
+    return i2c_master_transmit_receive(s_dev_handle, &reg, 1, data, len,
+                                       pdMS_TO_TICKS(20));
 }
 
 /* =========================================================
@@ -123,9 +102,26 @@ esp_err_t max30102_init(void)
 {
     if (s_initialized) return ESP_OK;
 
+    /* Cria e armazena o handle do dispositivo I2C uma única vez */
+    i2c_master_bus_handle_t bus = i2c_bus_get_handle();
+    if (!bus) {
+        ESP_LOGE(TAG, "I2C bus não inicializado");
+        return ESP_ERR_INVALID_STATE;
+    }
+    i2c_device_config_t dev_cfg = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+        .device_address  = MAX30102_I2C_ADDR,
+        .scl_speed_hz    = 400000,
+    };
+    esp_err_t ret = i2c_master_bus_add_device(bus, &dev_cfg, &s_dev_handle);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "i2c_master_bus_add_device: %s", esp_err_to_name(ret));
+        return ret;
+    }
+
     /* Verifica Part ID */
     uint8_t part_id = 0;
-    esp_err_t ret = reg_read(REG_PART_ID, &part_id, 1);
+    ret = reg_read(REG_PART_ID, &part_id, 1);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Falha ao ler Part ID: %s", esp_err_to_name(ret));
         return ret;
@@ -133,6 +129,8 @@ esp_err_t max30102_init(void)
     if (part_id != MAX30102_PART_ID) {
         ESP_LOGE(TAG, "Part ID incorreto: 0x%02X (esperado 0x%02X)",
                  part_id, MAX30102_PART_ID);
+        i2c_master_bus_rm_device(s_dev_handle);
+        s_dev_handle = NULL;
         return ESP_ERR_NOT_FOUND;
     }
 
@@ -295,6 +293,12 @@ esp_err_t max30102_read(max30102_reading_t *out)
 void task_oximeter_poll(void *arg)
 {
     ESP_LOGI(TAG, "task_oximeter_poll iniciada");
+
+    if (!s_initialized) {
+        ESP_LOGW(TAG, "MAX30102 nao disponivel — task encerrada");
+        vTaskDelete(NULL);
+        return;
+    }
 
     TickType_t  last_report = xTaskGetTickCount();
     const TickType_t report_ticks = pdMS_TO_TICKS(APP_OXIMETER_REPORT_INTERVAL_MS);

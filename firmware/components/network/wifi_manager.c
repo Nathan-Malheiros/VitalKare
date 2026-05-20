@@ -39,11 +39,14 @@ static esp_timer_handle_t s_retry_timer = NULL;
 
 static void reconnect_timer_cb(void *arg)
 {
+    /* NOTA: esp_timer_delete() NÃO pode ser chamado de dentro de um callback do
+     * próprio timer — causaria panic/assertion no esp_timer_dispatch_task.
+     * O timer one-shot já está "expirado" ao chegar aqui; apenas zeramos o
+     * ponteiro para que schedule_reconnect() saiba que pode criar um novo.
+     * O delete real acontece em schedule_reconnect() antes de criar o próximo. */
+    s_retry_timer = NULL;
     ESP_LOGI(TAG, "Timer de reconexao disparado — chamando esp_wifi_connect()");
     esp_wifi_connect();
-    /* O timer one-shot se auto-destrói após disparar para não vazar recursos */
-    esp_timer_delete(s_retry_timer);
-    s_retry_timer = NULL;
 }
 
 static void schedule_reconnect(uint32_t delay_ms)
@@ -81,8 +84,11 @@ static void on_wifi_event(void *arg, esp_event_base_t base,
         s_connected = false;
         s_rssi = 0;
 
-        /* Backoff exponencial: min 2 s, max 120 s */
-        uint32_t delay_ms = APP_RECONNECT_MIN_DELAY_MS * (1u << s_retry_count);
+        /* Backoff exponencial: min 2 s, max 120 s.
+         * Limita o shift a 6 bits (64×) para evitar overflow de uint32_t
+         * antes da comparação com APP_RECONNECT_MAX_DELAY_MS. */
+        uint32_t shift = (s_retry_count < 6u) ? s_retry_count : 6u;
+        uint32_t delay_ms = APP_RECONNECT_MIN_DELAY_MS * (1u << shift);
         if (delay_ms > APP_RECONNECT_MAX_DELAY_MS) {
             delay_ms = APP_RECONNECT_MAX_DELAY_MS;
         }

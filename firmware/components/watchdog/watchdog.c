@@ -1,9 +1,24 @@
 /**
  * @file watchdog.c
- * @brief Watchdog de software + hardware para tasks críticas (ESP-IDF 5.x)
+ * @brief Hardware WDT keeper + delegação de stall detection ao task_monitor
  *
- * Cada task crítica chama watchdog_feed_task() periodicamente.
- * Se alguma task falhar por mais de APP_WDT_TIMEOUT_MS, o sistema reinicia.
+ * ARQUITETURA CORRIGIDA:
+ *   - A detecção de stall lógico de tasks é feita pelo task_monitor +
+ *     system_manager (via task_monitor_heartbeat / task_monitor_get_faulted).
+ *   - Este módulo cuida APENAS do hardware WDT (TWDT do ESP-IDF):
+ *       1. Configura timeout e trigger_panic.
+ *       2. Registra a task_watchdog no TWDT.
+ *       3. Chama esp_task_wdt_reset() periodicamente para manter o HW WDT vivo.
+ *
+ * RAZÃO DA MUDANÇA:
+ *   O array s_last_feed_ms[] era inicializado no boot e nunca atualizado pelas
+ *   tasks (elas chamam task_monitor_heartbeat(), não watchdog_feed_task()), o
+ *   que causava um esp_restart() garantido a cada APP_WDT_TIMEOUT_MS (30 s).
+ *   O task_monitor já implementa stall detection com thresholds corretos;
+ *   duplicar a lógica aqui só introduzia erros.
+ *
+ * watchdog_feed_task() é mantida como no-op para compatibilidade de API com
+ * eventuais chamadas legadas sem recompilar todo o projeto.
  */
 
 #include "watchdog.h"
@@ -16,13 +31,8 @@
 
 static const char *TAG = "WDT";
 
-/* Timestamp da última alimentação de cada task (ms) */
-static volatile uint32_t s_last_feed_ms[WDT_TASK_COUNT] = {0};
-static bool s_initialized = false;
-
 esp_err_t watchdog_init(void)
 {
-    /* Configura o WDT de hardware */
     esp_task_wdt_config_t cfg = {
         .timeout_ms      = APP_WDT_TIMEOUT_MS,
         .idle_core_mask  = 0,
@@ -30,7 +40,6 @@ esp_err_t watchdog_init(void)
     };
     esp_err_t ret = esp_task_wdt_reconfigure(&cfg);
     if (ret == ESP_ERR_NOT_FOUND) {
-        /* WDT não estava iniciado — inicia agora */
         ret = esp_task_wdt_init(&cfg);
     }
     if (ret != ESP_OK) {
@@ -38,55 +47,30 @@ esp_err_t watchdog_init(void)
                  esp_err_to_name(ret));
     }
 
-    /* Registra a própria task watchdog */
+    /* Registra apenas a própria task watchdog no TWDT */
     esp_task_wdt_add(NULL);
 
-    /* Inicializa timestamps com o momento atual */
-    uint32_t now = xTaskGetTickCount() * portTICK_PERIOD_MS;
-    for (int i = 0; i < WDT_TASK_COUNT; i++) {
-        s_last_feed_ms[i] = now;
-    }
-
-    s_initialized = true;
-    ESP_LOGI(TAG, "Watchdog inicializado (timeout=%d ms)", APP_WDT_TIMEOUT_MS);
+    ESP_LOGI(TAG, "HW WDT configurado (timeout=%d ms, panic=true)", APP_WDT_TIMEOUT_MS);
     return ESP_OK;
 }
 
+/* No-op mantido para compatibilidade de API. Detecção de stall delegada ao task_monitor. */
 void watchdog_feed_task(wdt_task_id_t task_id)
 {
-    if (task_id >= WDT_TASK_COUNT) return;
-    s_last_feed_ms[task_id] = xTaskGetTickCount() * portTICK_PERIOD_MS;
+    (void)task_id;
 }
 
 void task_watchdog(void *arg)
 {
-    ESP_LOGI(TAG, "Task watchdog iniciada (prio máxima)");
+    (void)arg;
+    ESP_LOGI(TAG, "task_watchdog iniciada (prio=%d)", TASK_PRIO_WATCHDOG);
 
     watchdog_init();
 
     for (;;) {
-        uint32_t now_ms = xTaskGetTickCount() * portTICK_PERIOD_MS;
-
-        /* Verifica todas as tasks críticas */
-        bool all_alive = true;
-        for (int i = 0; i < WDT_TASK_COUNT; i++) {
-            uint32_t delta = now_ms - s_last_feed_ms[i];
-            if (delta > APP_WDT_TIMEOUT_MS) {
-                ESP_LOGE(TAG, "Task %d não alimentou o WDT há %lu ms — reiniciando",
-                         i, (unsigned long)delta);
-                all_alive = false;
-                break;
-            }
-        }
-
-        if (!all_alive) {
-            vTaskDelay(pdMS_TO_TICKS(100));
-            esp_restart();
-        }
-
-        /* Alimenta o WDT de hardware */
+        /* Mantém o hardware WDT vivo. Stall detection é responsabilidade do
+         * task_monitor + system_manager (task_monitor_get_faulted). */
         esp_task_wdt_reset();
-
         vTaskDelay(pdMS_TO_TICKS(APP_TASK_HEARTBEAT_PERIOD_MS));
     }
 }

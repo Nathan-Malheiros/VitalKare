@@ -223,11 +223,13 @@ static void init_hardware(void)
         ESP_LOGI(TAG, "  [PASS] Button handler (GPIO %d, %d)",
                  HW_BTN_A_GPIO, HW_BTN_B_GPIO);
     } else {
-        ESP_LOGE(TAG, "  [FAIL] Button handler — FATAL");
-        esp_restart();
+        ESP_LOGW(TAG, "  [FAIL] Button handler — continuando sem botoes");
+        all_ok = false;
     }
 
-    /* Áudio — inicializa I2S + chunk pool na PSRAM */
+    /* AUDIO DISABLED: GPIO37 conflicts with Octal PSRAM (DQ4/5). Fix
+     * HW_MIC_DATA_GPIO in hardware_config.h before re-enabling. */
+#if 0
     if (audio_capture_init() == ESP_OK) {
         ESP_LOGI(TAG, "  [PASS] Audio I2S PDM + PSRAM chunk pool");
     } else {
@@ -235,13 +237,15 @@ static void init_hardware(void)
         esp_restart();
     }
 
-    /* Audio encoder */
     if (audio_encoder_init() == ESP_OK) {
         ESP_LOGI(TAG, "  [PASS] Audio ADPCM encoder");
     } else {
         ESP_LOGE(TAG, "  [FAIL] Audio encoder init — FATAL");
         esp_restart();
     }
+#else
+    ESP_LOGW(TAG, "  [SKIP] Audio disabled — GPIO37/PSRAM conflict");
+#endif
 
     ESP_LOGI(TAG, "=== Hardware Init %s | Heap: %lu B | PSRAM: %lu B ===",
              all_ok ? "COMPLETE" : "DEGRADED",
@@ -324,15 +328,16 @@ static void create_tasks(void)
                 "cmd_proc", 4096,
                 NULL, TASK_PRIO_NETWORK - 1, NULL);
 
-    /* Audio ctrl (DMA streaming) */
+    /* Audio tasks disabled — see hardware_config.h HW_MIC_DATA_GPIO */
+#if 0
     xTaskCreate(task_audio_ctrl,
                 "audio_ctrl", TASK_STACK_AUDIO,
                 NULL, TASK_PRIO_AUDIO, NULL);
 
-    /* Audio encoder (ADPCM) */
     xTaskCreate(task_audio_encoder,
                 "audio_enc", TASK_STACK_AUDIO,
                 NULL, TASK_PRIO_AUDIO - 1, NULL);
+#endif
 
     /* Câmera */
     xTaskCreate(task_camera_stream,
@@ -397,10 +402,12 @@ void app_main(void)
     /* 10. Offline journal — requer SD montado (feito em init_hardware) */
     offline_journal_init();  /* Falha graciosamente se SD indisponível */
 
-    /* Registra pool de chunks no memory_monitor para visibilidade */
+    /* Audio chunk pool registration disabled — audio init skipped */
+#if 0
     memory_monitor_register_queue("chunk_pool",
                                   audio_chunk_pool_get_queue(),
                                   APP_AUDIO_CHUNK_POOL_COUNT);
+#endif
 
     /* 11. Transição para WIFI_CONNECTING */
     core_set_state(SYS_STATE_WIFI_CONNECTING);

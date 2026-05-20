@@ -19,6 +19,7 @@
 #include "freertos/queue.h"
 #include "freertos/task.h"
 #include "../../config/app_config.h"
+#include "../core/task_monitor.h"
 #include <string.h>
 
 static const char *TAG = "EVENTS";
@@ -203,6 +204,12 @@ void task_event_dispatcher(void *arg)
     ESP_LOGI(TAG, "task_event_dispatcher iniciada (dual-queue)");
 
     for (;;) {
+        /* Renova heartbeat a cada ciclo do dispatcher.
+         * CORRIGIDO: task era invisível ao task_monitor (nunca registrava
+         * heartbeat), portanto um eventual stall do dispatcher nunca seria
+         * detectado e o sistema não seria reiniciado adequadamente. */
+        task_monitor_heartbeat(TASK_ID_DISPATCHER);
+
         /* Fase 1: drena completamente a fila crítica */
         while (xQueueReceive(s_critical_queue, &evt, 0) == pdTRUE) {
             dispatch_event(&evt);
