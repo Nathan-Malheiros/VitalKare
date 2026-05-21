@@ -4,6 +4,7 @@ import { useWebSocket } from '@/hooks/useWebSocket'
 import { useAuthStore } from '@/store/authStore'
 import { useDevicesStore, type Device, type DeviceEvent } from '@/store/devicesStore'
 import { DeviceCard } from '@/components/devices/DeviceCard'
+import { DeviceDetailModal } from '@/components/devices/DeviceDetailModal'
 import api from '@/services/api'
 
 type FilterKey = 'ALL' | 'ONLINE' | 'EMERGENCY' | 'OFFLINE' | 'PENDING'
@@ -15,12 +16,6 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'OFFLINE',   label: 'Offline'    },
   { key: 'PENDING',   label: 'Pendentes'  },
 ]
-
-const LOG_TYPE_STYLE: Record<string, string> = {
-  EMERGENCY: 'bg-red-900/60 text-red-300',
-  REQUEST:   'bg-blue-900/60 text-blue-300',
-  ack:       'bg-green-900/60 text-green-300',
-}
 
 function playAlertBeep() {
   try {
@@ -65,11 +60,12 @@ export default function Dashboard() {
   const logout           = useAuthStore((s) => s.logout)
   const navigate         = useNavigate()
 
-  const [filter, setFilter]   = useState<FilterKey>('ALL')
-  const [wsOk, setWsOk]       = useState(false)
-  const [log, setLog]         = useState<LogEntry[]>([])
-  const [clock, setClock]     = useState('')
-  const logIdRef              = useRef(0)
+  const [filter, setFilter]       = useState<FilterKey>('ALL')
+  const [wsOk, setWsOk]           = useState(false)
+  const [log, setLog]             = useState<LogEntry[]>([])
+  const [clock, setClock]         = useState('')
+  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null)
+  const logIdRef                  = useRef(0)
 
   // Clock
   useEffect(() => {
@@ -101,14 +97,17 @@ export default function Dashboard() {
       }
 
       if (type === 'device_status') {
-        upsertDevice({
+        const patch: Partial<Device> & { device_id: string } = {
           device_id:    msg.device_id   as string,
           status:       msg.status      as Device['status'],
           ward_id:      (msg.ward_id    as string) ?? '',
           fw_version:   (msg.fw_version as string) ?? '',
           patient_name: (msg.patient_name as string) ?? null,
           room_label:   (msg.room_label   as string) ?? null,
-        })
+        }
+        if (msg.approved !== undefined) patch.approved = msg.approved as number
+        if (msg.capabilities !== undefined) patch.capabilities = msg.capabilities as number
+        upsertDevice(patch)
         const lbl = (msg.room_label as string) || (msg.device_id as string)
         pushLog('status', lbl, `Status: ${msg.status}`)
         return
@@ -178,6 +177,14 @@ export default function Dashboard() {
     if (Object.keys(devices).length > 0) setWsOk(true)
   }, [devices])
 
+  // Keep modal device data fresh when telemetry arrives
+  const selectedDeviceId = selectedDevice?.device_id
+  useEffect(() => {
+    if (!selectedDeviceId) return
+    const latest = devices[selectedDeviceId]
+    setSelectedDevice(latest ?? null)
+  }, [devices, selectedDeviceId])
+
   const handleAcknowledge = async (deviceId: string) => {
     const event = events.find((e) => e.device_id === deviceId && !e.acknowledged)
     if (event) {
@@ -190,7 +197,6 @@ export default function Dashboard() {
 
   const deviceList       = Object.values(devices)
   const emergencyDevices = deviceList.filter((d) => d.status === 'EMERGENCY')
-  const unackedEmg       = events.filter((e) => e.event_type === 'EMERGENCY' && !e.acknowledged)
 
   const counts = {
     online:    deviceList.filter((d) => d.status === 'ONLINE' || d.status === 'EMERGENCY').length,
@@ -329,6 +335,7 @@ export default function Dashboard() {
                   key={d.device_id}
                   device={d}
                   onAcknowledge={d.status === 'EMERGENCY' ? handleAcknowledge : undefined}
+                  onClick={setSelectedDevice}
                 />
               ))}
             </div>
@@ -378,6 +385,16 @@ export default function Dashboard() {
         </div>
 
       </main>
+
+      {/* Device detail slide-over */}
+      {selectedDevice && (
+        <DeviceDetailModal
+          device={selectedDevice}
+          events={events}
+          onClose={() => setSelectedDevice(null)}
+          onAcknowledge={selectedDevice.status === 'EMERGENCY' ? handleAcknowledge : undefined}
+        />
+      )}
     </div>
   )
 }

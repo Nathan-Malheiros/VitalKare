@@ -143,16 +143,35 @@ esp_err_t button_handler_init(void)
  * O campo `level` determina se é press (0) ou release (1) porque os
  * botões são ativo-baixo (pull-up interno).
  * ========================================================= */
+/* Boot-guard duration: GPIO 45/46 are ESP32-S3 strapping pins.
+ * During and just after power-on, hardware internal pull transitions
+ * on these pins generate spurious ANYEDGE ISRs that look like button
+ * presses. Ignore ALL button events for the first BOOT_GUARD_MS after
+ * the task starts to avoid false emergency triggers. */
+#define BOOT_GUARD_MS  1500u
+
 void task_button_handler(void *arg)
 {
     btn_isr_event_t isr_evt;
     uint32_t last_ts_a = 0;
     uint32_t last_ts_b = 0;
 
-    ESP_LOGI(TAG, "task_button_handler iniciada");
+    /* Record the timestamp at which the guard expires */
+    uint32_t boot_guard_until_ms =
+        (xTaskGetTickCount() * portTICK_PERIOD_MS) + BOOT_GUARD_MS;
+
+    ESP_LOGI(TAG, "task_button_handler iniciada (boot guard %u ms)", BOOT_GUARD_MS);
 
     for (;;) {
         if (xQueueReceive(s_btn_queue, &isr_evt, portMAX_DELAY) != pdTRUE) {
+            continue;
+        }
+
+        /* Boot guard: discard all events during strapping-pin settle window */
+        if (isr_evt.timestamp_ms < boot_guard_until_ms) {
+            ESP_LOGD(TAG, "Boot guard: descartando evento GPIO%lu em %lu ms",
+                     (unsigned long)isr_evt.gpio_num,
+                     (unsigned long)isr_evt.timestamp_ms);
             continue;
         }
 

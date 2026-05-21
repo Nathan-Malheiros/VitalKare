@@ -1,7 +1,7 @@
 {
     "version":            "1.3",
     "project_name":       "vitalkare-firmware",
-    "project_version":    "a6db583a-dirty",
+    "project_version":    "5c87c0e8-dirty",
     "project_path":       "C:/Users/natha/OneDrive/Documentos/VitalKare/firmware",
     "idf_path":           "C:/esp/v6.0.1/esp-idf",
     "build_dir":          "C:/Users/natha/OneDrive/Documentos/VitalKare/firmware/build",

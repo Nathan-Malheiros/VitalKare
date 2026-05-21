@@ -17,7 +17,7 @@
             "priority": 4
         }
     ],
-    "idf.currentSetup": "C:\\esp\\v6.0\\esp-idf",
+    "idf.currentSetup": "C:\\esp\\v6.0.1\\esp-idf",
     "idf.portWin": "COM20",
     "idf.flashType": "UART",
     "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",

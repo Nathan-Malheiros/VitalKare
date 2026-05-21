@@ -20,6 +20,7 @@ typedef struct {
 } oled_ctx_t;
 
 esp_err_t oled_init(oled_ctx_t *ctx);
+void      oled_display_on(oled_ctx_t *ctx);  /**< Envia 0xAF — Display ON (belt-and-suspenders) */
 void      oled_clear(oled_ctx_t *ctx);
 void      oled_flush(oled_ctx_t *ctx);
 void      oled_draw_string(oled_ctx_t *ctx, uint8_t x, uint8_t y, const char *str);

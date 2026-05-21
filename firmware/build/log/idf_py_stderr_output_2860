@@ -1,9 +1,0 @@
-Command: C:\Users\natha\.espressif\python_env\idf6.0_py3.14_env\Scripts\python.exe C:\esp\v6.0.1\esp-idf\tools/idf_monitor.py -p COM8 -b 115200 --toolchain-prefix xtensa-esp32s3-elf- --target esp32s3 --revision 0 C:\Users\natha\OneDrive\Documentos\VitalKare\firmware\build\vitalkare-firmware.elf C:\Users\natha\OneDrive\Documentos\VitalKare\firmware\build\bootloader\bootloader.elf --force-color -m 'C:\Users\natha\.espressif\python_env\idf6.0_py3.14_env\Scripts\python.exe' 'C:\esp\v6.0.1\esp-idf\tools\idf.py' '-p' 'COM8'
-[0;33m--- Warning: GDB cannot open serial ports accessed as COMx[0m
-[0;33m--- Using \\.\COM8 instead...[0m
-[0;33m--- esp-idf-monitor 1.9.0 on \\.\COM8 115200[0m
-[0;33m--- Quit: Ctrl+] | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H[0m
-[0m--- 0x4037bbca: [0;33mmspi_timing_get_psram_tuning_configs[0m[0m at [0;32mC:/esp/v6.0.1/esp-idf/components/esp_hw_support/mspi_timing_tuning/port/esp32s3/mspi_timing_by_mspi_delay.c[0m[0m:[1;31m215[0m
-[0m--- 0x403c8700: [0;33m_stext[0m[0m at [0;32m??[0m[0m:[1;31m?[0m
-[0m--- 0x403c8908: [0;33mcall_start_cpu0[0m[0m at [0;32mC:/esp/v6.0.1/esp-idf/components/bootloader/subproject/main/bootloader_start.c[0m[0m:[1;31m27[0m
-[0;33m--- Warning: Checksum mismatch between flashed and built applications. Checksum of built application is f895206d96ae72f710cd7a8597bf549f9dfb95e84f74e59089ff01b6b127dbff[0m

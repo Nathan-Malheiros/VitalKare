@@ -285,9 +285,8 @@ function Stop-BusyPorts {
         Write-Host ("  Porta {0} - PID {1}" -f $item.Port, $item.PID) -ForegroundColor Yellow
     }
 
-    if (-not (Ask-YesNo 'Encerrar esses processos para subir o supervisório' 'S')) {
-        throw 'Inicializacao cancelada pelo usuario devido a portas ocupadas.'
-    }
+    # Força sempre o encerramento dos processos ocupando as portas do supervisor
+    Write-Host '[INFO] Encerrando processos ocupando as portas do supervisor automaticamente.' -ForegroundColor Yellow
 
     foreach ($item in $busy) {
         Stop-Process -Id $item.PID -Force -ErrorAction SilentlyContinue

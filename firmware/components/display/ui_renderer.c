@@ -9,11 +9,15 @@
 #include "oled_driver.h"
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "esp_netif.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 #include "../../config/app_config.h"
+#include "../../config/device_config.h"
 #include "../core/task_monitor.h"
+#include "../network/wifi_manager.h"
+#include "../network/tcp_client.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -30,6 +34,8 @@ static bool                 s_initialized = false;
  * ========================================================= */
 esp_err_t ui_init(oled_ctx_t *ctx)
 {
+    /* Idempotente: seguro chamar antes e depois do scheduler */
+    if (s_initialized) return ESP_OK;
     s_mutex = xSemaphoreCreateMutex();
     if (!s_mutex) return ESP_ERR_NO_MEM;
     s_screen = UI_SCREEN_BOOT;
@@ -108,33 +114,43 @@ void ui_render(oled_ctx_t *ctx)
         oled_draw_string(ctx,  4, 36, "Aguarde...");
         break;
 
-    /* ---- OPERATIONAL ---- */
+    /* ---- OPERATIONAL — dashboard de 8 linhas ---- */
     case UI_SCREEN_OPERATIONAL:
-        /* Linha 0: Leito + status MQTT */
-        snprintf(buf, sizeof(buf), "%.12s  MQTT:%s",
-                 op.device_id[0] ? op.device_id : "---",
-                 op.mqtt_connected ? "OK" : "--");
-        oled_draw_string(ctx, 0, 0, buf);
-        oled_draw_hline(ctx, 0, 9, 128);
+        /* Linha 0 (y=0):  VitalKare */
+        oled_draw_string(ctx, 22, 0, "VitalKare");
 
-        /* Temperatura / Umidade */
+        /* Linha 1 (y=8):  device_id */
+        oled_draw_string(ctx, 0, 8,
+                         op.device_id[0] ? op.device_id : DEVICE_ID);
+
+        /* Linha 2 (y=16): WiFi status */
+        snprintf(buf, sizeof(buf), "WiFi: %s", op.wifi_ok ? "OK" : "OFFLINE");
+        oled_draw_string(ctx, 0, 16, buf);
+
+        /* Linha 3 (y=24): IP address */
+        snprintf(buf, sizeof(buf), "IP: %s",
+                 op.ip_addr[0] ? op.ip_addr : "---");
+        oled_draw_string(ctx, 0, 24, buf);
+
+        /* Linha 4 (y=32): Temperatura + Umidade */
         snprintf(buf, sizeof(buf), "T:%.1fC H:%.0f%%",
                  op.temperature, op.humidity);
-        oled_draw_string(ctx, 0, 13, buf);
+        oled_draw_string(ctx, 0, 32, buf);
 
-        /* Luminosidade */
-        snprintf(buf, sizeof(buf), "Lux: %.0f", op.lux);
-        oled_draw_string(ctx, 0, 25, buf);
+        /* Linha 5 (y=40): Luminosidade */
+        snprintf(buf, sizeof(buf), "Lux : %.0f", op.lux);
+        oled_draw_string(ctx, 0, 40, buf);
 
-        /* Paciente */
+        /* Linha 6 (y=48): Backend status */
+        snprintf(buf, sizeof(buf), "Backend: %s",
+                 op.tcp_connected ? "ONLINE" : "OFFLINE");
+        oled_draw_string(ctx, 0, 48, buf);
+
+        /* Linha 7 (y=56): paciente ou vazio */
         if (op.patient_name[0]) {
             snprintf(buf, sizeof(buf), "Pac: %.14s", op.patient_name);
-            oled_draw_string(ctx, 0, 37, buf);
+            oled_draw_string(ctx, 0, 56, buf);
         }
-
-        /* Status */
-        oled_draw_hline(ctx, 0, 54, 128);
-        oled_draw_string(ctx, 0, 56, "Sistema OK");
         break;
 
     /* ---- EMERGENCY ---- */
@@ -213,23 +229,61 @@ void ui_render(oled_ctx_t *ctx)
 }
 
 /* =========================================================
+ * HELPERS — live status para dashboard
+ * ========================================================= */
+static void refresh_live_status(ui_operational_data_t *op)
+{
+    op->wifi_ok       = wifi_manager_is_connected();
+    op->tcp_connected = tcp_client_is_connected();
+    op->mqtt_connected = op->tcp_connected;
+
+    /* IP do netif Wi-Fi STA */
+    esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+    if (netif) {
+        esp_netif_ip_info_t ip = {0};
+        if (esp_netif_get_ip_info(netif, &ip) == ESP_OK && ip.ip.addr != 0) {
+            snprintf(op->ip_addr, sizeof(op->ip_addr), IPSTR,
+                     IP2STR(&ip.ip));
+        }
+    }
+}
+
+/* =========================================================
  * TASK
  * ========================================================= */
 void task_display_update(void *arg)
 {
     oled_ctx_t *ctx = (oled_ctx_t *)arg;
-    ESP_LOGI(TAG, "Task display_update iniciada");
+    ESP_LOGI(TAG, "OLED task started (ctx=%p)", (void *)ctx);
 
-    if (!ctx || oled_init(ctx) != ESP_OK) {
-        ESP_LOGE(TAG, "OLED init falhou — task encerrada");
+    if (!ctx) {
+        ESP_LOGE(TAG, "OLED ctx NULL — task encerrada");
+        vTaskDelete(NULL);
+        return;
+    }
+
+    if (oled_init(ctx) != ESP_OK) {
+        ESP_LOGE(TAG, "OLED init falhou na task — task encerrada");
         vTaskDelete(NULL);
         return;
     }
 
     ui_init(ctx);
 
+    /* Belt-and-suspenders: garantir display ligado após init do scheduler */
+    oled_display_on(ctx);
+    ESP_LOGI(TAG, "OLED display ON enviado");
+
     for (;;) {
         task_monitor_heartbeat(TASK_ID_DISPLAY);
+        ESP_LOGD(TAG, "OLED render tick");
+
+        /* Atualiza status de conectividade diretamente no op_data */
+        if (xSemaphoreTake(s_mutex, pdMS_TO_TICKS(20)) == pdTRUE) {
+            refresh_live_status(&s_op_data);
+            xSemaphoreGive(s_mutex);
+        }
+
         ui_render(ctx);
         vTaskDelay(pdMS_TO_TICKS(APP_DISPLAY_REFRESH_MS));
     }

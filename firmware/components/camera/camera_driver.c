@@ -76,17 +76,23 @@ esp_err_t camera_driver_init(void)
         .ledc_timer   = LEDC_TIMER_1,
         .ledc_channel = LEDC_CHANNEL_1,
 
+        /* QQVGA (160×120) + 1 framebuffer: minimal DMA SRAM footprint.
+         * QVGA failed at boot (largest free block 11264 B).
+         * QQVGA DMA receive buffers fit in ~5 KB internal SRAM.
+         * Framebuffer itself is in PSRAM. */
         .pixel_format = PIXFORMAT_JPEG,
-        .frame_size   = FRAMESIZE_VGA,   /* 640×480 */
+        .frame_size   = FRAMESIZE_QQVGA, /* 160×120 — minimal DMA SRAM */
         .jpeg_quality = HW_CAM_JPEG_QUALITY,
-        .fb_count     = 2,               /* double buffering */
+        .fb_count     = 1,               /* single buffer — minimal DMA pressure */
         .fb_location  = CAMERA_FB_IN_PSRAM,
         .grab_mode    = CAMERA_GRAB_WHEN_EMPTY,
     };
 
+    ESP_LOGI(TAG, "Iniciando camera OV5640 (QQVGA JPEG, 1 fb, PSRAM)...");
     ret = esp_camera_init(&cfg);
     if (ret != ESP_OK) {
-        ESP_LOGW(TAG, "esp_camera_init: %s", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "esp_camera_init falhou: %s — camera desativada",
+                 esp_err_to_name(ret));
         return ret;
     }
 
@@ -102,7 +108,7 @@ esp_err_t camera_driver_init(void)
     }
 
     s_initialized = true;
-    ESP_LOGI(TAG, "Camera OV5640 inicializada (VGA JPEG, PSRAM framebuffer)");
+    ESP_LOGI(TAG, "Camera OV5640 inicializada (QQVGA JPEG, 1 fb, PSRAM)");
     return ESP_OK;
 }
 
@@ -209,7 +215,7 @@ static void send_jpeg_over_tcp(const uint8_t *jpeg_data, size_t jpeg_len,
 void task_camera_stream(void *arg)
 {
     (void)arg;
-    ESP_LOGI(TAG, "task_camera_stream iniciada (%d ms/frame, chunk=%u B)",
+    ESP_LOGI(TAG, "task_camera_stream iniciada (QQVGA, %d ms/frame, chunk=%u B)",
              APP_CAMERA_FRAME_INTERVAL_MS, (unsigned)CAMERA_CHUNK_PAYLOAD_SIZE);
 
     for (;;) {

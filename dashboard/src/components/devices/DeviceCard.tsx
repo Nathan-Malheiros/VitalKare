@@ -3,6 +3,7 @@ import type { Device } from '@/store/devicesStore'
 interface DeviceCardProps {
   device: Device
   onAcknowledge?: (deviceId: string) => void
+  onClick?: (device: Device) => void
 }
 
 const STATUS_META: Record<string, { border: string; badgeBg: string; badgeText: string; label: string }> = {
@@ -57,7 +58,7 @@ function SignalBars({ rssi }: { rssi: number | null }) {
   )
 }
 
-export function DeviceCard({ device, onAcknowledge }: DeviceCardProps) {
+export function DeviceCard({ device, onAcknowledge, onClick }: DeviceCardProps) {
   const meta = STATUS_META[device.status] ?? STATUS_META.OFFLINE
   const isEmergency = device.status === 'EMERGENCY'
   const isOffline   = device.status === 'OFFLINE'
@@ -68,6 +69,10 @@ export function DeviceCard({ device, onAcknowledge }: DeviceCardProps) {
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onClick?.(device)}
+      onKeyDown={(e) => e.key === 'Enter' && onClick?.(device)}
       className={`rounded-2xl overflow-hidden transition-transform hover:-translate-y-0.5 hover:shadow-xl cursor-pointer ${isEmergency ? 'animate-emg' : ''}`}
       style={{
         background: '#ffffff',

@@ -108,6 +108,14 @@ static esp_err_t ssd1306_data(const uint8_t *data, size_t len)
 esp_err_t oled_init(oled_ctx_t *ctx)
 {
     if (ctx == NULL) return ESP_ERR_INVALID_ARG;
+
+    /* Idempotente: se o handle I2C já existe, só atualiza o ponteiro de contexto */
+    if (s_dev_handle != NULL) {
+        s_ctx = ctx;
+        ESP_LOGD(TAG, "OLED já inicializado — reutilizando handle I2C");
+        return ESP_OK;
+    }
+
     s_ctx = ctx;
     memset(ctx->buffer, 0, sizeof(ctx->buffer));
     ctx->needs_flush = false;
@@ -179,16 +187,53 @@ void oled_clear(oled_ctx_t *ctx)
     ctx->needs_flush = true;
 }
 
+void oled_display_on(oled_ctx_t *ctx)
+{
+    (void)ctx;
+    if (s_dev_handle == NULL) return;
+    esp_err_t ret = ssd1306_cmd(0xAF);  /* Display ON */
+    if (ret != ESP_OK) {
+        ESP_LOGW(TAG, "oled_display_on: I2C err %s", esp_err_to_name(ret));
+    }
+}
+
 void oled_flush(oled_ctx_t *ctx)
 {
-    /* Define janela de exibição (toda a tela) */
-    ssd1306_cmd(0x21); ssd1306_cmd(0); ssd1306_cmd(127);  /* col 0→127 */
-    ssd1306_cmd(0x22); ssd1306_cmd(0); ssd1306_cmd(7);    /* page 0→7 */
-    /* Envia buffer em blocos de 32 bytes */
-    for (int i = 0; i < (int)sizeof(ctx->buffer); i += 32) {
-        ssd1306_data(&ctx->buffer[i], 32);
+    if (s_dev_handle == NULL) {
+        ESP_LOGE(TAG, "oled_flush: handle NULL — init não completou");
+        return;
     }
-    ctx->needs_flush = false;
+
+    esp_err_t ret;
+
+    /* Define janela de exibição (toda a tela) — horizontal addressing mode */
+    ret  = ssd1306_cmd(0x21);
+    ret |= ssd1306_cmd(0);
+    ret |= ssd1306_cmd(127);  /* col 0→127 */
+    ret |= ssd1306_cmd(0x22);
+    ret |= ssd1306_cmd(0);
+    ret |= ssd1306_cmd(7);    /* page 0→7 */
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "oled_flush: falha ao definir janela I2C (%s)",
+                 esp_err_to_name(ret));
+        return;
+    }
+
+    /* Envia buffer em blocos de 32 bytes */
+    bool ok = true;
+    for (int i = 0; i < (int)sizeof(ctx->buffer); i += 32) {
+        if (ssd1306_data(&ctx->buffer[i], 32) != ESP_OK) {
+            ESP_LOGE(TAG, "oled_flush: falha no bloco %d", i / 32);
+            ok = false;
+            break;
+        }
+    }
+
+    if (ok) {
+        ESP_LOGD(TAG, "OLED framebuffer flushed (%d bytes)",
+                 (int)sizeof(ctx->buffer));
+        ctx->needs_flush = false;
+    }
 }
 
 void oled_draw_pixel(oled_ctx_t *ctx, uint8_t x, uint8_t y, bool on)

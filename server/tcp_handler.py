@@ -192,12 +192,15 @@ async def _dispatch(
         await send(ack)
         # Broadcast new/reconnected device to dashboard
         updated = await db.get_device(dev_id)
+        is_approved = bool(updated and updated.get("approved"))
         await ws_manager.broadcast({
             "type": "device_status",
             "device_id": dev_id,
-            "status": "ONLINE" if (updated and updated.get("approved")) else "PENDING",
+            "status": "ONLINE" if is_approved else "PENDING",
+            "approved": 1 if is_approved else 0,
             "ward_id": info.get("ward_id", ""),
             "fw_version": info.get("fw_version", ""),
+            "capabilities": info.get("capabilities", 0),
             "patient_name": updated.get("patient_name") if updated else None,
             "room_label": updated.get("room_label") if updated else None,
             "timestamp": datetime.now(timezone.utc).isoformat(),

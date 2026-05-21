@@ -22,7 +22,7 @@
  * ESP32-S3 DevKit   -> sobe um firmware reduzido, focado em Wi-Fi, TCP,
  *                      heartbeat e telemetria básica para o dashboard.
  */
-#define VK_BOARD_PROFILE VK_BOARD_PROFILE_ESP32S3_DEVKIT
+#define VK_BOARD_PROFILE VK_BOARD_PROFILE_KIIRA_V2
 
 /* =========================================================
  * BITMASK DE CAPACIDADES PUBLICADA NO HANDSHAKE

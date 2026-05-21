@@ -297,10 +297,11 @@ async def ws_dashboard(websocket: WebSocket) -> None:
 
     ws_manager.register(websocket)
 
-    # Push current device snapshot
-    devices = await db.get_all_devices()
-    provisioned = await db.get_all_provisioned_slots()
+    # Push current device snapshot — DB calls are outside the client send try/except,
+    # so wrap them separately to avoid ECONNRESET when the DB is missing a table.
     try:
+        devices = await db.get_all_devices()
+        provisioned = await db.get_all_provisioned_slots()
         await websocket.send_text(json.dumps({
             "type": "snapshot",
             "devices": devices,
@@ -308,7 +309,8 @@ async def ws_dashboard(websocket: WebSocket) -> None:
             "provisioned": provisioned,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }, default=str))
-    except Exception:
+    except Exception as exc:
+        logger.warning("ws_dashboard: failed to send initial snapshot (%s) — closing", exc)
         ws_manager.unregister(websocket)
         return
 
@@ -329,6 +331,8 @@ async def ws_dashboard(websocket: WebSocket) -> None:
                 pass
     except WebSocketDisconnect:
         pass
+    except Exception as exc:
+        logger.warning("ws_dashboard: connection error (%s)", exc)
     finally:
         ws_manager.unregister(websocket)
 

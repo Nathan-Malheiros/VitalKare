@@ -59,6 +59,12 @@
 
 static const char *TAG = "MAIN";
 
+/* Contexto OLED em escopo de módulo para ser compartilhado com a task de display */
+static oled_ctx_t s_oled_ctx;
+
+/* Tracks whether SD card mounted successfully — gates storage task creation */
+static bool s_sd_ok = false;
+
 static void log_feature_skip(const char *feature)
 {
     ESP_LOGI(TAG, "  [SKIP] %s — indisponivel no perfil %s", feature, VK_BOARD_TAG);
@@ -179,17 +185,18 @@ static void init_hardware(void)
              VK_BOARD_NAME, VK_BOARD_RUNTIME_MODE);
     bool all_ok = true;
 
-    /* SD Card */
+    /* SD Card — failure is non-fatal; degrades to RAM-only operation */
     if (VK_BOARD_HAS_STORAGE) {
         if (sd_manager_init() == ESP_OK) {
+            s_sd_ok = true;
             ESP_LOGI(TAG, "  [PASS] SD Card montado");
             sd_manager_mkdir(APP_SD_LOG_DIR);
             sd_manager_mkdir(APP_SD_AUDIO_DIR);
             sd_manager_mkdir(APP_SD_IMAGE_DIR);
             sd_manager_mkdir(APP_SD_CACHE_DIR);
         } else {
-            ESP_LOGW(TAG, "  [FAIL] SD Card — operacao sem storage local");
-            all_ok = false;
+            s_sd_ok = false;
+            ESP_LOGW(TAG, "  [WARN] SD Card ausente — operando sem storage local (nao fatal)");
         }
     } else {
         log_feature_skip("SD Card");
@@ -197,11 +204,12 @@ static void init_hardware(void)
 
     /* Display OLED — periférico opcional; falha não é fatal */
     if (VK_BOARD_HAS_DISPLAY) {
-        static oled_ctx_t oled_ctx;
-        if (oled_init(&oled_ctx) == ESP_OK) {
-            ESP_LOGI(TAG, "  [PASS] OLED display");
+        if (oled_init(&s_oled_ctx) == ESP_OK) {
+            ESP_LOGI(TAG, "  [PASS] OLED display (SDA=%d SCL=%d)",
+                     HW_OLED_SDA_GPIO, HW_OLED_SCL_GPIO);
         } else {
-            ESP_LOGW(TAG, "  [FAIL] OLED — display desativado");
+            ESP_LOGW(TAG, "  [FAIL] OLED — display desativado (SDA=%d SCL=%d)",
+                     HW_OLED_SDA_GPIO, HW_OLED_SCL_GPIO);
         }
     } else {
         log_feature_skip("OLED display");
@@ -338,15 +346,15 @@ static void create_tasks(void)
                     NULL, TASK_PRIO_SENSORS, NULL);
     }
 
-    /* Display OLED */
+    /* Display OLED — passa contexto para a task (não pode ser NULL) */
     if (VK_BOARD_HAS_DISPLAY) {
         xTaskCreate(task_display_update,
                     "display", TASK_STACK_DISPLAY,
-                    NULL, TASK_PRIO_DISPLAY, NULL);
+                    &s_oled_ctx, TASK_PRIO_DISPLAY, NULL);
     }
 
-    /* Storage flush */
-    if (VK_BOARD_HAS_STORAGE) {
+    /* Storage flush — only if SD actually mounted */
+    if (VK_BOARD_HAS_STORAGE && s_sd_ok) {
         xTaskCreate(task_storage_flush,
                     "storage", TASK_STACK_STORAGE,
                     NULL, TASK_PRIO_STORAGE, NULL);
@@ -445,9 +453,16 @@ void app_main(void)
     /* 9. Hardware periférico */
     init_hardware();
 
-    /* 10. Offline journal — requer SD montado (feito em init_hardware) */
-    if (VK_BOARD_HAS_STORAGE) {
-        offline_journal_init();  /* Falha graciosamente se SD indisponível */
+    /* 9b. UI init — executado após o hardware OLED mas antes das tasks.
+     *  Garante que ui_set_screen() na sequência de boot funcione corretamente.
+     *  ui_init() é idempotente; a task de display chamará novamente sem problema. */
+    if (VK_BOARD_HAS_DISPLAY) {
+        ui_init(&s_oled_ctx);
+    }
+
+    /* 10. Offline journal — apenas se SD montou com sucesso */
+    if (VK_BOARD_HAS_STORAGE && s_sd_ok) {
+        offline_journal_init();
     }
 
     /* Audio chunk pool registration disabled — audio init skipped */

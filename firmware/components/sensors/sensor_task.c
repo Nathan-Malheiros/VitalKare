@@ -34,6 +34,7 @@
 #include "../network/vk_protocol.h"
 #include "../events/event_dispatcher.h"
 #include "../core/task_monitor.h"
+#include "../display/ui_renderer.h"
 
 static const char *TAG = "SENSORS";
 
@@ -102,6 +103,16 @@ void task_sensor_poll(void *arg)
 
         ESP_LOGI(TAG, "T=%.1f°C H=%.1f%% Lux=%.0f Motion=%d Postura=%s",
                  hdc.temperature_celsius, hdc.humidity_percent, lux, motion, posture);
+
+        /* --- Atualiza display OLED com leituras atuais --- */
+        {
+            ui_operational_data_t op = {0};
+            op.temperature = hdc.temperature_celsius;
+            op.humidity    = hdc.humidity_percent;
+            op.lux         = lux;
+            strncpy(op.device_id, DEVICE_ID, sizeof(op.device_id) - 1);
+            ui_update_operational_data(&op);
+        }
 
         /* --- Envia telemetria ambiental via TCP (lossy — descarta se offline) --- */
         pkt_telemetry_env_t env_pkt = {

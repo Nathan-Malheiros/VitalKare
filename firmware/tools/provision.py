@@ -250,11 +250,15 @@ def flash_nvs(bin_path: str, port: str, baud: int) -> None:
         "--chip", "esp32s3",
         "--port", port,
         "--baud", str(baud),
-        "write_flash",
+        "--before", "default-reset",
+        "--after", "hard-reset",
+        "--connect-attempts", "5",
+        "write-flash",
         NVS_FLASH_OFFSET, bin_path,
     ]
     print(f"\n  Gravando NVS em {port} @ {baud} bps...")
     print(f"  Comando: {' '.join(cmd)}\n")
+    print("  ⚠️  Se aparecer 'Connecting...' por mais de 3s, segure BOOT e pressione RESET na placa.\n")
     result = subprocess.run(cmd)
     if result.returncode != 0:
         print("\n  ❌ Flash falhou. Verifique a porta e se a placa está em modo bootloader.")

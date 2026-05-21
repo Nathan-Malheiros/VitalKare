@@ -44,9 +44,9 @@
  *   - Windows: ipconfig  (procure "Endereço IPv4" da sua interface Wi-Fi)
  *   - Linux:   ip -4 addr show
  * ========================================================= */
-#define DEVICE_SERVER_HOST      "192.168.1.100"
+#define DEVICE_SERVER_HOST      "192.168.1.223"
 #define DEVICE_TCP_PORT         7890
-#define DEVICE_HTTP_BASE_URL    "http://192.168.1.100:8000"
+#define DEVICE_HTTP_BASE_URL    "http://192.168.1.223:8000"
 
 /* Compatibilidade com nomes legados ainda usados na documentação antiga */
 #define DEVICE_MQTT_HOST        DEVICE_SERVER_HOST
@@ -55,9 +55,14 @@
 /* =========================================================
  * IDENTIDADE DO DISPOSITIVO (ajuste por placa)
  * ========================================================= */
-#define DEVICE_ID               "leito01"
-#define DEVICE_WARD_ID          "ala-a"
+#define DEVICE_ID               "LeitoKira3"
+#define DEVICE_WARD_ID          "ALAKIRA"
 #define DEVICE_PATIENT_ID       "PAC-000"
+
+/* Set to 1 to overwrite NVS with the values above on every boot.
+ * Use when NVS has stale values from a previous provision run.
+ * Set back to 0 once the device is provisioned correctly. */
+#define DEVICE_CONFIG_FORCE_APPLY  1
 
 /* =========================================================
  * USUÁRIO MQTT (definido no mosquitto/passwd)

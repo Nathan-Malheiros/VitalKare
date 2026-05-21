@@ -90,6 +90,29 @@ static void load_runtime_string(nvs_handle_t nvs, const char *key, char *out, si
     }
 }
 
+#if DEVICE_CONFIG_FORCE_APPLY
+/* Writes compiled device_config.h values to NVS, overwriting whatever is there.
+ * Called once in tcp_client_init() when DEVICE_CONFIG_FORCE_APPLY=1.
+ * Use to recover from stale NVS values after a failed provision run. */
+static void force_apply_config_to_nvs(void)
+{
+    nvs_handle_t nvs;
+    if (nvs_open(DEVICE_NVS_NAMESPACE, NVS_READWRITE, &nvs) != ESP_OK) {
+        ESP_LOGW(TAG_TX, "force_apply: cannot open NVS RW — compiled defaults will be used");
+        return;
+    }
+    nvs_set_str(nvs, DEVICE_NVS_KEY_DEVICE_ID,   DEVICE_ID);
+    nvs_set_str(nvs, DEVICE_NVS_KEY_WARD_ID,     DEVICE_WARD_ID);
+    nvs_set_str(nvs, DEVICE_NVS_KEY_SERVER_HOST, DEVICE_SERVER_HOST);
+    uint16_t port = DEVICE_TCP_PORT;
+    nvs_set_u16(nvs, DEVICE_NVS_KEY_TCP_PORT, port);
+    nvs_commit(nvs);
+    nvs_close(nvs);
+    ESP_LOGI(TAG_TX, "force_apply: NVS <- device_id=%s ward=%s host=%s port=%u",
+             DEVICE_ID, DEVICE_WARD_ID, DEVICE_SERVER_HOST, (unsigned)DEVICE_TCP_PORT);
+}
+#endif
+
 static void load_runtime_config(void)
 {
     nvs_handle_t nvs;
@@ -219,7 +242,11 @@ bool tcp_client_send_critical(const uint8_t *frame, uint16_t len)
 
 bool tcp_client_send_normal(const uint8_t *frame, uint16_t len)
 {
-    return enqueue_frame(s_normal_queue, frame, len, pdMS_TO_TICKS(20));
+    bool ok = enqueue_frame(s_normal_queue, frame, len, pdMS_TO_TICKS(20));
+    if (!ok) {
+        ESP_LOGW(TAG_TX, "Fila normal cheia — frame %u B descartado", len);
+    }
+    return ok;
 }
 
 /* =========================================================
@@ -345,6 +372,8 @@ static esp_err_t do_connect(void)
     VK_ASSERT_FSM(prev == TCP_STATE_DISCONNECTED,
                   "do_connect called from non-DISCONNECTED state: %d", (int)prev);
 
+    ESP_LOGI(TAG_TX, "Conectando ao backend %s:%u ...",
+             s_server_host, (unsigned)s_server_port);
     atomic_store(&s_state, TCP_STATE_CONNECTING);
 
     struct addrinfo hints = {
@@ -356,7 +385,8 @@ static esp_err_t do_connect(void)
     snprintf(port_str, sizeof(port_str), "%u", (unsigned)s_server_port);
 
     if (getaddrinfo(s_server_host, port_str, &hints, &res) != 0 || !res) {
-        ESP_LOGE(TAG_TX, "getaddrinfo falhou para %s", s_server_host);
+        ESP_LOGE(TAG_TX, "getaddrinfo falhou para %s:%u — servidor atingivel?",
+                 s_server_host, (unsigned)s_server_port);
         atomic_store(&s_state, TCP_STATE_DISCONNECTED);
         return ESP_FAIL;
     }
@@ -429,6 +459,9 @@ esp_err_t tcp_client_init(void)
     if (!s_event_grp || !s_critical_queue || !s_normal_queue) {
         return ESP_ERR_NO_MEM;
     }
+#if DEVICE_CONFIG_FORCE_APPLY
+    force_apply_config_to_nvs();
+#endif
     load_runtime_config();
     ESP_LOGI(TAG_TX, "tcp_client inicializado");
     return ESP_OK;
@@ -454,6 +487,7 @@ void task_tcp_tx(void *arg)
     ESP_LOGI(TAG_TX, "task_tcp_tx iniciada");
 
     static uint8_t s_ping_frame[VK_HEADER_SIZE + sizeof(pkt_heartbeat_t) + VK_CRC_SIZE];
+    static int64_t s_wifi_idle_start_us = 0;   /* for WiFi-up fallback */
 
     for (;;) {
         task_monitor_heartbeat(TASK_ID_TCP_TX);
@@ -485,7 +519,29 @@ void task_tcp_tx(void *arg)
             if (do_connect() != ESP_OK) {
                 schedule_reconnect();
             }
+            s_wifi_idle_start_us = 0;   /* reset fallback timer after explicit connect */
             continue;
+        }
+
+        /* WiFi-up fallback: if EVT_WIFI_CONNECTED was missed (event queue overflow or
+         * dispatcher race), force a connection attempt after 5 s of WiFi being up. */
+        if (atomic_load(&s_state) == TCP_STATE_DISCONNECTED) {
+            if (wifi_manager_is_connected()) {
+                int64_t now_us = esp_timer_get_time();
+                if (s_wifi_idle_start_us == 0) {
+                    s_wifi_idle_start_us = now_us;
+                    ESP_LOGI(TAG_TX, "WiFi conectado, TCP desconectado — aguardando evento");
+                } else if ((now_us - s_wifi_idle_start_us) > 5000000LL) {
+                    s_wifi_idle_start_us = now_us;
+                    ESP_LOGW(TAG_TX, "EVT_WIFI_CONNECTED nao recebido — forcando conexao TCP");
+                    if (do_connect() != ESP_OK) schedule_reconnect();
+                    continue;
+                }
+            } else {
+                s_wifi_idle_start_us = 0;
+            }
+        } else {
+            s_wifi_idle_start_us = 0;
         }
 
         tcp_conn_state_t cur = atomic_load(&s_state);

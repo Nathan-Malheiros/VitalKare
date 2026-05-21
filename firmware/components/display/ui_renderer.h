@@ -29,10 +29,12 @@ typedef struct {
     float    humidity;
     float    lux;
     bool     wifi_ok;
-    bool     mqtt_connected;
+    bool     tcp_connected;     /**< Backend TCP reachable */
+    bool     mqtt_connected;    /**< Legacy alias — set equal to tcp_connected */
     uint32_t pending_events;
     char     patient_name[32];
     char     device_id[16];
+    char     ip_addr[16];       /**< Device IP, e.g. "192.168.1.151" */
 } ui_operational_data_t;
 
 /**
@@ -60,6 +62,12 @@ typedef struct {
     /* Áudio */
     uint8_t  audio_state;       /**< audio_state_t cast para uint8 */
 } ui_diagnostics_data_t;
+
+/**
+ * @brief Inicializa o renderer UI com o contexto OLED.
+ * Idempotente — chamadas subsequentes são no-op.
+ */
+esp_err_t ui_init(oled_ctx_t *ctx);
 
 /** @brief Define a tela ativa (thread-safe). */
 void ui_set_screen(ui_screen_id_t screen);
