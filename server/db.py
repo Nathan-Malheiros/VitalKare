@@ -145,6 +145,21 @@ async def update_device_status(device_id: str, status: str) -> None:
         await db.commit()
 
 
+async def update_device_heartbeat(device_id: str) -> None:
+    """Update last_seen and set ONLINE — but preserve EMERGENCY status."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """
+            UPDATE devices SET
+                last_seen = ?,
+                status    = CASE WHEN status = 'EMERGENCY' THEN 'EMERGENCY' ELSE 'ONLINE' END
+            WHERE device_id = ?
+            """,
+            (time.time(), device_id),
+        )
+        await db.commit()
+
+
 async def update_device_telemetry(device_id: str, telemetry: dict) -> None:
     allowed = {
         "rssi", "free_heap_bytes", "uptime_ms",

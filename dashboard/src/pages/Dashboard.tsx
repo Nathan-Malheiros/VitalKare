@@ -171,7 +171,6 @@ export default function Dashboard() {
     [setSnapshot, upsertDevice, updateTelemetry, setDeviceStatus, addEvent, acknowledgeEvent, removeDevice, pushLog, devices]
   )
 
-  const handleWsStatus = useCallback((connected: boolean) => setWsOk(connected), [])
   useWebSocket(handleMessage, 2000)
 
   // Mark WS ok on first snapshot

@@ -298,7 +298,8 @@ on_mqtt_connected()
 VitalKare/
 ├── README.md
 ├── CONTRIBUTING.md
-├── VitalKare_Especificacao_Tecnica.md
+├── docs/
+│   └── VitalKare_Especificacao_Tecnica.md
 │
 ├── firmware/                               ← ESP32-S3 (ESP-IDF + FreeRTOS)
 │   ├── CMakeLists.txt

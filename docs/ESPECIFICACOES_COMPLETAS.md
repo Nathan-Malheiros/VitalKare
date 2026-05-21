@@ -276,12 +276,13 @@ A **KIIRA V2** é uma plataforma de desenvolvimento educacional baseada no **ESP
 VitalKare/                              ← Raiz do monorepo
 │
 ├── README.md                           ← Visão geral e quick start
-├── ESPECIFICACOES_COMPLETAS.md         ← Este documento
-├── VitalKare_Especificacao_Tecnica.md  ← Especificação técnica detalhada
-├── Mapeamento.md                       ← Master plan de fases e tarefas
-├── checkpoint.md                       ← Estado atual por sessão de desenvolvimento
 ├── CONTRIBUTING.md                     ← Guia de contribuição
 ├── dashboard-simulation.html           ← Simulação do dashboard (sem servidor)
+├── docs/
+│   ├── ESPECIFICACOES_COMPLETAS.md         ← Este documento
+│   ├── VitalKare_Especificacao_Tecnica.md  ← Especificação técnica detalhada
+│   ├── Mapeamento.md                       ← Master plan de fases e tarefas
+│   └── checkpoint.md                       ← Estado atual por sessão de desenvolvimento
 │
 ├── firmware/                           ← ESP-IDF — KIIRA V2 (ESP32-S3)
 │   ├── CMakeLists.txt                  ← Build root do ESP-IDF

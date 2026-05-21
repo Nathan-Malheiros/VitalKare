@@ -4,7 +4,7 @@ import path from 'path'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const backendHost = env.VITE_BACKEND_HOST || 'localhost'
+  const proxyTargetHost = env.VITE_PROXY_TARGET_HOST || '127.0.0.1'
 
   return {
   plugins: [react()],
@@ -17,11 +17,11 @@ export default defineConfig(({ mode }) => {
     port: 5173,
     proxy: {
       '/api': {
-        target: `http://${backendHost}:8000`,
+        target: `http://${proxyTargetHost}:8000`,
         changeOrigin: true,
       },
       '/ws': {
-        target: `ws://${backendHost}:8000`,
+        target: `ws://${proxyTargetHost}:8000`,
         ws: true,
       },
     },

@@ -129,8 +129,8 @@ function Get-HostNetworkProfile($hostIp) {
 function Update-DashboardEnv($hostIp) {
     $content = @(
         "# Gerado por system-startup-assistant.ps1"
-        "VITE_BACKEND_HOST=$hostIp"
-        "VITE_WS_URL=ws://$hostIp`:8000"
+        "# O proxy do Vite fala com o backend local que roda na mesma maquina."
+        "VITE_PROXY_TARGET_HOST=127.0.0.1"
     )
     Set-Content -Path $dashboardEnv -Value $content -Encoding ASCII
 }

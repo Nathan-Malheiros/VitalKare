@@ -20,6 +20,8 @@ Auth: JWT Bearer (HS256). admin/admin → full access.
 """
 
 from __future__ import annotations
+import asyncio
+import json
 import logging
 import os
 import time
@@ -283,9 +285,7 @@ async def ws_dashboard(websocket: WebSocket) -> None:
     # If no auth message within 2 s, connect anyway (MVP: read-only feed)
     token_payload: dict = {}
     try:
-        import asyncio
         raw = await asyncio.wait_for(websocket.receive_text(), timeout=2.0)
-        import json
         msg = json.loads(raw)
         if msg.get("type") == "auth":
             try:
@@ -300,7 +300,6 @@ async def ws_dashboard(websocket: WebSocket) -> None:
     # Push current device snapshot
     devices = await db.get_all_devices()
     provisioned = await db.get_all_provisioned_slots()
-    import json
     try:
         await websocket.send_text(json.dumps({
             "type": "snapshot",

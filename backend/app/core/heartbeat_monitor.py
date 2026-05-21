@@ -63,7 +63,10 @@ class HeartbeatMonitor:
 
         async with AsyncSessionLocal() as session:
             result = await session.execute(
-                select(Bed).where(Bed.status != BedStatus.OFFLINE)
+                select(Bed).where(
+                    Bed.status != BedStatus.OFFLINE,
+                    Bed.status != BedStatus.EMERGENCY,
+                )
             )
             beds: list[Bed] = result.scalars().all()
 

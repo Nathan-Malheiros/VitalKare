@@ -17,8 +17,8 @@ export default function Login() {
     try {
       await login(username, password)
       navigate('/')
-    } catch {
-      setError('Usuário ou senha inválidos.')
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Nao foi possivel concluir o login agora.')
     } finally {
       setLoading(false)
     }

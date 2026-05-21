@@ -212,7 +212,7 @@ async def _dispatch(
     if t == vk.Pkt.HEARTBEAT_PING:
         pong = vk.build_pong(next_seq())
         await send(pong)
-        await db.update_device_status(device_id, "ONLINE")
+        await db.update_device_heartbeat(device_id)  # preserves EMERGENCY status
         return
 
     # ── Telemetry ──────────────────────────────────────────

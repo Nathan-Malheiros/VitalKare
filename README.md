@@ -12,10 +12,11 @@
 
 | Documento | Descrição |
 |---|---|
-| [ESPECIFICACOES_COMPLETAS.md](ESPECIFICACOES_COMPLETAS.md) | Especificações completas: hardware, firmware, backend, dashboard, fluxos, banco de dados e glossário |
-| [VitalKare_Especificacao_Tecnica.md](VitalKare_Especificacao_Tecnica.md) | Especificação técnica arquitetural detalhada (baseline oficial) |
-| [Mapeamento.md](Mapeamento.md) | Master plan: análise de requisitos, fases e tarefas |
-| [checkpoint.md](checkpoint.md) | Estado de desenvolvimento por sessão |
+| [ESPECIFICACOES_COMPLETAS.md](docs/ESPECIFICACOES_COMPLETAS.md) | Especificações completas: hardware, firmware, backend, dashboard, fluxos, banco de dados e glossário |
+| [VitalKare_Especificacao_Tecnica.md](docs/VitalKare_Especificacao_Tecnica.md) | Especificação técnica arquitetural detalhada (baseline oficial) |
+| [Mapeamento.md](docs/Mapeamento.md) | Master plan: análise de requisitos, fases e tarefas |
+| [checkpoint.md](docs/checkpoint.md) | Estado de desenvolvimento por sessão |
+| [CHECKLIST_MIGRACAO_ENTRE_NOTEBOOKS.md](docs/CHECKLIST_MIGRACAO_ENTRE_NOTEBOOKS.md) | Checklist para validar path, variáveis de ambiente, IPs e diferenças entre notebooks |
 | [dashboard-simulation.html](dashboard-simulation.html) | Simulação do dashboard (abre direto no navegador, sem servidor) |
 
 ---
@@ -146,7 +147,7 @@ API disponível em: http://localhost:8000/api/docs
 ```bash
 cd dashboard
 cp .env.local.example .env.local
-# Edite VITE_BACKEND_HOST com o IP do servidor na LAN (ex: 192.168.1.100)
+# Opcional: ajuste VITE_PROXY_TARGET_HOST so se o backend nao rodar nesta mesma maquina
 npm install
 npm run dev
 ```
@@ -237,7 +238,7 @@ system-startup-assistant.bat
 Ele abre um fluxo operacional de bancada para:
 
 1. detectar o **IP LAN** do notebook/PC
-2. atualizar `dashboard/.env.local` com esse host
+2. configurar o proxy local do dashboard para falar com o backend na mesma maquina
 3. subir o **server** e o **dashboard**
 4. perguntar **SSID**, **senha**, porta COM e identidade da placa
 5. gravar essas informacoes na NVS da **KIIRA** ou **ESP32-S3 DevKit**
@@ -316,7 +317,7 @@ Dashboard  :5173             (browser no mesmo PC)
 
 1. Descubra o IP do notebook: `ipconfig` (Windows)
 2. Edite `docker/.env` → `HOST_LAN_IP=<seu_ip>`
-3. Edite `dashboard/.env.local` → `VITE_BACKEND_HOST=<seu_ip>`
+3. Se o backend estiver em outra maquina, edite `dashboard/.env.local` → `VITE_PROXY_TARGET_HOST=<host_do_backend>`
 4. Provisione o firmware: `python firmware/tools/provision.py --port COM16`
 
 > **Observação para bancada DevKit:** o firmware publica um perfil reduzido e telemetria de sistema para validar conectividade mesmo sem OLED, sensores, SD ou câmera.
