@@ -35,6 +35,7 @@
 #define VK_CAP_STORAGE             0x00000020u
 #define VK_CAP_CAMERA              0x00000040u
 #define VK_CAP_AUDIO               0x00000080u
+#define VK_CAP_SIMULATION          0x40000000u  /**< Telemetria simulada (sem hardware real) */
 #define VK_CAP_DEVKIT_PROFILE      0x80000000u
 
 #if VK_BOARD_PROFILE == VK_BOARD_PROFILE_KIIRA_V2
@@ -73,10 +74,25 @@
 #define VK_BOARD_HAS_CAMERA        0
 #define VK_BOARD_HAS_AUDIO         0
 
-#define VK_BOARD_CAPABILITIES      (VK_CAP_SYSTEM_TELEMETRY | VK_CAP_DEVKIT_PROFILE)
+#define VK_BOARD_CAPABILITIES      (VK_CAP_SYSTEM_TELEMETRY \
+                                    | VK_CAP_ENVIRONMENT \
+                                    | VK_CAP_OXIMETER \
+                                    | VK_CAP_SIMULATION \
+                                    | VK_CAP_DEVKIT_PROFILE)
 
 #else
 #error "VK_BOARD_PROFILE invalido. Use VK_BOARD_PROFILE_KIIRA_V2 ou VK_BOARD_PROFILE_ESP32S3_DEVKIT."
+#endif
+
+/* =========================================================
+ * MODO DE SIMULAÇÃO
+ * Ativado automaticamente no perfil DevKit.
+ * Substitui leitura de hardware real por dados sintéticos.
+ * ========================================================= */
+#if VK_BOARD_PROFILE == VK_BOARD_PROFILE_ESP32S3_DEVKIT
+#  define VK_SIMULATION_MODE 1
+#else
+#  define VK_SIMULATION_MODE 0
 #endif
 
 #endif /* VITALKARE_BOARD_PROFILE_H */

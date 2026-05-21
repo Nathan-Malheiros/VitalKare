@@ -24,6 +24,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "../../config/app_config.h"
+#include "../core/task_monitor.h"
 #include "../events/event_dispatcher.h"
 #include "../network/tcp_client.h"
 #include "../network/vk_protocol.h"
@@ -152,7 +153,7 @@ esp_err_t max30102_init(void)
     reg_write(REG_LED2_PA, 0x24);
 
     s_initialized = true;
-    ESP_LOGI(TAG, "MAX30102 inicializado (addr=0x%02X)", MAX30102_I2C_ADDR);
+    ESP_LOGI(TAG, "[SENSOR] Oximeter initialized (MAX30102 addr=0x%02X)", MAX30102_I2C_ADDR);
     return ESP_OK;
 }
 
@@ -306,6 +307,7 @@ void task_oximeter_poll(void *arg)
 
     for (;;) {
         vTaskDelay(pdMS_TO_TICKS(APP_OXIMETER_POLL_INTERVAL_MS));
+        task_monitor_heartbeat(TASK_ID_OXIMETER);
 
         max30102_reading_t reading = {0};
         esp_err_t ret = max30102_read(&reading);

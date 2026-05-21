@@ -12,12 +12,13 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
+#include "../../config/hardware_config.h"
 
 static const char *TAG = "I2C_BUS";
 
 /* GPIO do barramento compartilhado (OLED, HDC1080, MPU6050) */
-#define I2C_BUS_SDA_GPIO    14
-#define I2C_BUS_SCL_GPIO    21
+#define I2C_BUS_SDA_GPIO    HW_OLED_SDA_GPIO
+#define I2C_BUS_SCL_GPIO    HW_OLED_SCL_GPIO
 #define I2C_BUS_PORT        I2C_NUM_0
 
 static i2c_master_bus_handle_t s_bus_handle  = NULL;

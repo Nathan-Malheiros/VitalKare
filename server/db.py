@@ -237,6 +237,24 @@ async def acknowledge_event(event_id: int) -> None:
         await db.commit()
 
 
+async def get_event(event_id: int) -> dict | None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute("SELECT * FROM events WHERE id = ?", (event_id,))
+        row = await cursor.fetchone()
+        return dict(row) if row else None
+
+
+async def update_device_last_seen(device_id: str) -> None:
+    """Update only last_seen timestamp without changing status."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE devices SET last_seen = ? WHERE device_id = ?",
+            (time.time(), device_id),
+        )
+        await db.commit()
+
+
 async def get_events(device_id: str | None = None, limit: int = 100) -> list[dict]:
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row

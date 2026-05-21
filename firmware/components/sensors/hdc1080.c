@@ -73,7 +73,7 @@ esp_err_t hdc1080_init(void)
     }
 
     s_initialized = true;
-    ESP_LOGI(TAG, "HDC1080 inicializado (I2C addr=0x%02X)", HDC1080_I2C_ADDR);
+    ESP_LOGI(TAG, "[SENSOR] Environment sensor initialized (HDC1080 addr=0x%02X)", HDC1080_I2C_ADDR);
     return ESP_OK;
 }
 

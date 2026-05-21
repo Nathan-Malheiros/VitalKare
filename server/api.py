@@ -35,6 +35,8 @@ from pydantic import BaseModel
 from jose import jwt, JWTError
 
 import db
+import device_connections
+import vk_proto as vk
 from ws_manager import ws_manager
 
 logger = logging.getLogger("vitalkare.api")
@@ -165,7 +167,35 @@ async def list_events(device_id: Optional[str] = None, limit: int = 100) -> list
 
 @app.post("/api/events/{event_id}/acknowledge")
 async def ack_event(event_id: int, _user: dict = Depends(_get_current_user)) -> dict:
+    event = await db.get_event(event_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
     await db.acknowledge_event(event_id)
+    # If this was an EMERGENCY event, reset device status to ONLINE so all clients
+    # see the confirmation — not just the one that clicked the button.
+    if event.get("event_type") == "EMERGENCY":
+        device_id = event["device_id"]
+        device = await db.get_device(device_id)
+        if device and device.get("status") == "EMERGENCY":
+            await db.update_device_status(device_id, "ONLINE")
+            await ws_manager.broadcast({
+                "type": "device_status",
+                "device_id": device_id,
+                "status": "ONLINE",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            })
+            logger.info("Emergency acknowledged for %s — status reset to ONLINE", device_id)
+        # Push PKT_EVENT_ACK to the firmware so it can clear its emergency screen
+        seq = device_connections.next_seq(device_id)
+        if seq is not None:
+            ack_frame = vk.build_event_ack(seq)
+            sent = await device_connections.send_frame(device_id, ack_frame)
+            if sent:
+                logger.info("PKT_EVENT_ACK sent to %s", device_id)
+            else:
+                logger.warning("PKT_EVENT_ACK: send failed for %s (connection dropped?)", device_id)
+        else:
+            logger.info("PKT_EVENT_ACK: %s not connected — firmware will clear on reconnect", device_id)
     await ws_manager.broadcast({
         "type": "event_acknowledged",
         "event_id": event_id,

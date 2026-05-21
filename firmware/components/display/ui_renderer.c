@@ -18,6 +18,7 @@
 #include "../core/task_monitor.h"
 #include "../network/wifi_manager.h"
 #include "../network/tcp_client.h"
+#include "../core/system_manager.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -264,10 +265,12 @@ void task_display_update(void *arg)
 
     if (oled_init(ctx) != ESP_OK) {
         ESP_LOGE(TAG, "OLED init falhou na task — task encerrada");
+        system_manager_report_subsystem(SUBSYS_DISPLAY, false);
         vTaskDelete(NULL);
         return;
     }
 
+    system_manager_report_subsystem(SUBSYS_DISPLAY, true);
     ui_init(ctx);
 
     /* Belt-and-suspenders: garantir display ligado após init do scheduler */

@@ -249,11 +249,11 @@ def parse_telemetry_oximeter(payload: bytes) -> dict:
     """Parse PKT_TELEMETRY_OXIMETER payload."""
     if len(payload) < 8:
         return {}
-    bpm, spo2, finger, conf, ts_ms = struct.unpack_from("<BBBBi", payload)
+    bpm, spo2, finger, conf, ts_ms = struct.unpack_from("<BBBBI", payload)
     return {
         "bpm": bpm,
         "spo2_pct": spo2,
-        "finger_detected": bool(finger),
+        "finger_detected": int(finger),
         "confidence": conf,
         "timestamp_ms": ts_ms,
     }
@@ -274,6 +274,11 @@ def parse_telemetry_system(payload: bytes) -> dict:
     }
 
 
+def build_event_ack(seq: int) -> bytes:
+    """Build PKT_EVENT_ACK frame (server → firmware: operator confirmed the event)."""
+    return build_frame(Pkt.EVENT_ACK, seq, b"")
+
+
 def parse_event(payload: bytes) -> dict:
     """Parse PKT_EVENT_REQUEST / PKT_EVENT_EMERGENCY payload."""
     if len(payload) < 5:
@@ -288,7 +293,7 @@ def parse_event(payload: bytes) -> dict:
 def parse_audio_session_start(payload: bytes) -> dict:
     if len(payload) < 10:
         return {}
-    session_id, trigger, sample_rate, bits, codec, channels = struct.unpack_from("<IBHBbb", payload)
+    session_id, trigger, sample_rate, bits, codec, channels = struct.unpack_from("<IBHBBB", payload)
     return {
         "session_id": session_id,
         "trigger": trigger,

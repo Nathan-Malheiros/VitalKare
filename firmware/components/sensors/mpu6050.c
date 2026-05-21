@@ -115,7 +115,7 @@ esp_err_t mpu6050_init(void)
     }
 
     s_initialized = true;
-    ESP_LOGI(TAG, "MPU6050 inicializado (addr=0x%02X)", MPU6050_I2C_ADDR);
+    ESP_LOGI(TAG, "[SENSOR] Accelerometer initialized (MPU6050 addr=0x%02X)", MPU6050_I2C_ADDR);
     return ESP_OK;
 }
 

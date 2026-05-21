@@ -22,4 +22,5 @@ idf_component_register(
         camera
         watchdog
         i2c_bus
+        simulation
 )

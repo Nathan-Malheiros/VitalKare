@@ -84,11 +84,32 @@ static i2c_master_dev_handle_t s_dev_handle = NULL;
 
 /* =========================================================
  * HELPERS I2C PARA SSD1306 (novo driver)
+ *
+ * IMPORTANTE: comandos multi-byte (ex: 0x21 col_start col_end)
+ * DEVEM ser enviados em UMA única transação I2C.  Clones do
+ * SSD1306 resetam o estado do parser de comando a cada condição
+ * STOP, portanto enviar bytes separados causa interpretação errada:
+ *   0x00 → "Set Lower Column Start Address" (page mode)
+ *   0x7F → "Set Display Start Line = 63"  ← desloca tela 63 linhas!
+ * Resultado: display aparentemente apagado / conteúdo invisível.
  * ========================================================= */
+
+/* Envia 1 byte de comando (standalone — não tem parâmetros) */
 static esp_err_t ssd1306_cmd(uint8_t cmd)
 {
     uint8_t buf[2] = {0x00, cmd};  /* Co=0, D/C=0 → command */
     return i2c_master_transmit(s_dev_handle, buf, 2, pdMS_TO_TICKS(100));
+}
+
+/* Envia n bytes de comando em UMA transação (obrigatório para cmd multi-byte).
+ * n deve ser 1–8. */
+static esp_err_t ssd1306_cmdbuf(const uint8_t *cmds, size_t n)
+{
+    uint8_t buf[9]; /* 1 control + max 8 cmd bytes */
+    if (n == 0 || n > 8 || !s_dev_handle) return ESP_ERR_INVALID_ARG;
+    buf[0] = 0x00;  /* Co=0, D/C=0 → all following bytes are commands */
+    memcpy(buf + 1, cmds, n);
+    return i2c_master_transmit(s_dev_handle, buf, (uint32_t)(n + 1), pdMS_TO_TICKS(100));
 }
 
 /* Envia um bloco de dados do display GRAM */
@@ -109,6 +130,8 @@ esp_err_t oled_init(oled_ctx_t *ctx)
 {
     if (ctx == NULL) return ESP_ERR_INVALID_ARG;
 
+    ESP_LOGI(TAG, "[DISPLAY] OLED initialization started");
+
     /* Idempotente: se o handle I2C já existe, só atualiza o ponteiro de contexto */
     if (s_dev_handle != NULL) {
         s_ctx = ctx;
@@ -123,7 +146,7 @@ esp_err_t oled_init(oled_ctx_t *ctx)
     /* Inicializa barramento I2C compartilhado (idempotente) */
     esp_err_t ret = i2c_bus_init();
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "i2c_bus_init: %s", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "[ERROR] Display initialization failed: i2c_bus_init %s", esp_err_to_name(ret));
         return ret;
     }
 
@@ -135,46 +158,43 @@ esp_err_t oled_init(oled_ctx_t *ctx)
     };
     ret = i2c_master_bus_add_device(i2c_bus_get_handle(), &dev_cfg, &s_dev_handle);
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "i2c_master_bus_add_device: %s", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "[ERROR] Display initialization failed: i2c_master_bus_add_device %s", esp_err_to_name(ret));
         return ret;
     }
 
+    ESP_LOGI(TAG, "[DISPLAY] OLED detected at address 0x%02X", SSD1306_I2C_ADDR);
+
     vTaskDelay(pdMS_TO_TICKS(10));  /* SSD1306 power-on delay */
 
-    /* Sequência de init do SSD1306 */
-    const uint8_t init_cmds[] = {
-        0xAE,               /* Display OFF */
-        0xD5, 0x80,         /* Clock divide ratio */
-        0xA8, 0x3F,         /* Mux ratio (64 rows) */
-        0xD3, 0x00,         /* Display offset */
-        0x40,               /* Start line 0 */
-        0x8D, 0x14,         /* Charge pump enable */
-        0x20, 0x00,         /* Memory addressing: horizontal */
-        0xA1,               /* Segment remap (cols 127→0) */
-        0xC8,               /* COM scan direction: remapped */
-        0xDA, 0x12,         /* COM pins config */
-        0x81, 0xCF,         /* Contrast */
-        0xD9, 0xF1,         /* Pre-charge period */
-        0xDB, 0x40,         /* VCOMH deselect */
-        0xA4,               /* Entire display ON from RAM */
-        0xA6,               /* Normal display (not inverted) */
-        0x2E,               /* Deactivate scroll */
-        0xAF,               /* Display ON */
-    };
-
-    for (size_t i = 0; i < sizeof(init_cmds); i++) {
-        ret = ssd1306_cmd(init_cmds[i]);
-        if (ret != ESP_OK) {
-            ESP_LOGE(TAG, "SSD1306 init cmd 0x%02X falhou: %s",
-                     init_cmds[i], esp_err_to_name(ret));
-            return ret;
-        }
+    /* Sequência de init do SSD1306.
+     * Comandos multi-byte (cmd + parâmetros) enviados em UMA transação cada —
+     * veja comentário em ssd1306_cmdbuf(). */
+    ret  = ssd1306_cmd(0xAE);                                   /* Display OFF */
+    ret |= ssd1306_cmdbuf((uint8_t[]){0xD5, 0x80}, 2);         /* Clock divide ratio */
+    ret |= ssd1306_cmdbuf((uint8_t[]){0xA8, 0x3F}, 2);         /* Mux ratio (64 rows) */
+    ret |= ssd1306_cmdbuf((uint8_t[]){0xD3, 0x00}, 2);         /* Display offset */
+    ret |= ssd1306_cmd(0x40);                                   /* Start line 0 */
+    ret |= ssd1306_cmdbuf((uint8_t[]){0x8D, 0x14}, 2);         /* Charge pump enable */
+    ret |= ssd1306_cmdbuf((uint8_t[]){0x20, 0x00}, 2);         /* Memory addressing: horizontal */
+    ret |= ssd1306_cmd(0xA1);                                   /* Segment remap (cols 127→0) */
+    ret |= ssd1306_cmd(0xC8);                                   /* COM scan direction: remapped */
+    ret |= ssd1306_cmdbuf((uint8_t[]){0xDA, 0x12}, 2);         /* COM pins config */
+    ret |= ssd1306_cmdbuf((uint8_t[]){0x81, 0xCF}, 2);         /* Contrast */
+    ret |= ssd1306_cmdbuf((uint8_t[]){0xD9, 0xF1}, 2);         /* Pre-charge period */
+    ret |= ssd1306_cmdbuf((uint8_t[]){0xDB, 0x40}, 2);         /* VCOMH deselect */
+    ret |= ssd1306_cmd(0xA4);                                   /* Entire display ON from RAM */
+    ret |= ssd1306_cmd(0xA6);                                   /* Normal display (not inverted) */
+    ret |= ssd1306_cmd(0x2E);                                   /* Deactivate scroll */
+    ret |= ssd1306_cmd(0xAF);                                   /* Display ON */
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "[ERROR] Display initialization failed: init sequence %s", esp_err_to_name(ret));
+        return ret;
     }
 
     oled_clear(ctx);
     oled_flush(ctx);
 
-    ESP_LOGI(TAG, "OLED SSD1306 inicializado (128x64, I2C 0x%02X)", HW_OLED_I2C_ADDR);
+    ESP_LOGI(TAG, "[DISPLAY] OLED SSD1306 inicializado (128x64, I2C 0x%02X)", HW_OLED_I2C_ADDR);
     return ESP_OK;
 }
 
@@ -206,13 +226,10 @@ void oled_flush(oled_ctx_t *ctx)
 
     esp_err_t ret;
 
-    /* Define janela de exibição (toda a tela) — horizontal addressing mode */
-    ret  = ssd1306_cmd(0x21);
-    ret |= ssd1306_cmd(0);
-    ret |= ssd1306_cmd(127);  /* col 0→127 */
-    ret |= ssd1306_cmd(0x22);
-    ret |= ssd1306_cmd(0);
-    ret |= ssd1306_cmd(7);    /* page 0→7 */
+    /* Define janela de exibição (toda a tela) — horizontal addressing mode.
+     * Cada comando multi-byte numa única transação I2C (veja ssd1306_cmdbuf). */
+    ret  = ssd1306_cmdbuf((uint8_t[]){0x21, 0x00, 0x7F}, 3);  /* col 0→127 */
+    ret |= ssd1306_cmdbuf((uint8_t[]){0x22, 0x00, 0x07}, 3);  /* page 0→7 */
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "oled_flush: falha ao definir janela I2C (%s)",
                  esp_err_to_name(ret));
@@ -230,7 +247,7 @@ void oled_flush(oled_ctx_t *ctx)
     }
 
     if (ok) {
-        ESP_LOGD(TAG, "OLED framebuffer flushed (%d bytes)",
+        ESP_LOGD(TAG, "[DISPLAY] Display flush successful (%d bytes)",
                  (int)sizeof(ctx->buffer));
         ctx->needs_flush = false;
     }

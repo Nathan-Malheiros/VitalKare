@@ -24,6 +24,7 @@
 #include "esp_err.h"
 #include "nvs_flash.h"
 #include "esp_system.h"
+#include "esp_timer.h"
 
 /* Configurações */
 #include "config/app_config.h"
@@ -57,6 +58,10 @@
 #include "camera/camera_driver.h"
 #include "watchdog/watchdog.h"
 
+#if VK_SIMULATION_MODE
+#include "simulation/sim_sensors.h"
+#endif
+
 static const char *TAG = "MAIN";
 
 /* Contexto OLED em escopo de módulo para ser compartilhado com a task de display */
@@ -79,9 +84,24 @@ static void on_btn_b_pressed(const system_event_t *evt)
     ESP_LOGW(TAG, "=== EMERGENCIA ATIVADA ===");
     core_set_state(SYS_STATE_EMERGENCY);
     ui_set_screen(UI_SCREEN_EMERGENCY);
-    audio_ctrl_start(AUDIO_TRIGGER_EMERGENCY);
     log_write(LOG_LEVEL_CRITICAL, LOG_CAT_BUTTON,
               "Botao de emergencia pressionado", NULL);
+
+    /* Send PKT_EVENT_EMERGENCY — VK_QOS_GUARANTEED: stays in pending table
+     * until delivered, survives TCP reconnect. */
+    pkt_event_t epkt = {
+        .timestamp_unix = (uint32_t)(esp_timer_get_time() / 1000000LL),
+        .trigger        = 1,
+    };
+    uint8_t eframe[VK_HEADER_SIZE + sizeof(pkt_event_t) + VK_CRC_SIZE];
+    int eflen = vk_frame_build(eframe, sizeof(eframe),
+                               PKT_EVENT_EMERGENCY, tcp_client_next_seq(),
+                               &epkt, sizeof(epkt));
+    if (eflen > 0) {
+        vk_reliability_send(eframe, (uint16_t)eflen, VK_QOS_GUARANTEED);
+    }
+
+    audio_ctrl_start(AUDIO_TRIGGER_EMERGENCY);
 }
 
 static void on_btn_b_released(const system_event_t *evt)
@@ -96,9 +116,24 @@ static void on_btn_b_released(const system_event_t *evt)
 static void on_btn_a_pressed(const system_event_t *evt)
 {
     ESP_LOGI(TAG, "Solicitacao do paciente");
-    audio_ctrl_start(AUDIO_TRIGGER_REQUEST);
     log_write(LOG_LEVEL_INFO, LOG_CAT_BUTTON,
               "Botao de solicitacao pressionado", NULL);
+
+    /* Send PKT_EVENT_REQUEST — VK_QOS_RETRY: retries a few times, acceptable
+     * to lose if connectivity is down for a long time. */
+    pkt_event_t rpkt = {
+        .timestamp_unix = (uint32_t)(esp_timer_get_time() / 1000000LL),
+        .trigger        = 0,
+    };
+    uint8_t rframe[VK_HEADER_SIZE + sizeof(pkt_event_t) + VK_CRC_SIZE];
+    int rflen = vk_frame_build(rframe, sizeof(rframe),
+                               PKT_EVENT_REQUEST, tcp_client_next_seq(),
+                               &rpkt, sizeof(rpkt));
+    if (rflen > 0) {
+        vk_reliability_send(rframe, (uint16_t)rflen, VK_QOS_RETRY);
+    }
+
+    audio_ctrl_start(AUDIO_TRIGGER_REQUEST);
 }
 
 static void on_btn_a_released(const system_event_t *evt)
@@ -346,6 +381,13 @@ static void create_tasks(void)
                     NULL, TASK_PRIO_SENSORS, NULL);
     }
 
+#if VK_SIMULATION_MODE
+    /* Simulation mode: synthetic sensor task replaces real hardware drivers */
+    xTaskCreate(task_sim_telemetry,
+                "sim_sensors", 4096,
+                NULL, TASK_PRIO_SENSORS, NULL);
+#endif
+
     /* Display OLED — passa contexto para a task (não pode ser NULL) */
     if (VK_BOARD_HAS_DISPLAY) {
         xTaskCreate(task_display_update,
@@ -421,6 +463,15 @@ void app_main(void)
     ESP_LOGI(TAG, "  Dispositivo: %s", APP_DEFAULT_DEVICE_ID);
     ESP_LOGI(TAG, "  Perfil de placa: %s (%s)", VK_BOARD_NAME, VK_BOARD_RUNTIME_MODE);
     ESP_LOGI(TAG, "============================================");
+
+#if VK_SIMULATION_MODE
+    ESP_LOGW(TAG, "============================================");
+    ESP_LOGW(TAG, "  [SIMULATION] Running in simulated hardware mode");
+    ESP_LOGW(TAG, "  [SIMULATION] Sensor providers replaced with virtual data");
+    ESP_LOGW(TAG, "  [SIMULATION] KiiraV2 hardware access disabled");
+    ESP_LOGW(TAG, "============================================");
+    sim_sensors_init();
+#endif
 
     /* 1. system_manager_init() — task_monitor + memory_monitor + mutex */
     ESP_ERROR_CHECK(system_manager_init());

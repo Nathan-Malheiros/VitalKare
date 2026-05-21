@@ -128,7 +128,8 @@ export default function Dashboard() {
           acknowledged: 0,
         }
         addEvent(event)
-        const dev = devices[event.device_id]
+        // Use getState() to avoid adding `devices` to deps (would cause WS reconnect on every telemetry)
+        const dev = useDevicesStore.getState().devices[event.device_id]
         const lbl = dev?.room_label || event.device_id
         if (event.event_type === 'EMERGENCY') {
           setDeviceStatus(event.device_id, 'EMERGENCY')
@@ -166,8 +167,24 @@ export default function Dashboard() {
         pushLog('status', msg.device_id as string, 'Dispositivo removido')
         return
       }
+
+      if (type === 'audio_session_start') {
+        const devId = msg.device_id as string
+        const dev = useDevicesStore.getState().devices[devId]
+        const lbl = dev?.room_label || devId
+        pushLog('audio', lbl, `🎙 Gravação iniciada (sessão #${msg.session_id})`)
+        return
+      }
+
+      if (type === 'audio_session_end') {
+        const devId = msg.device_id as string
+        const dev = useDevicesStore.getState().devices[devId]
+        const lbl = dev?.room_label || devId
+        pushLog('audio', lbl, `🎙 Gravação concluída — ${msg.total_chunks ?? 0} chunks`)
+        return
+      }
     },
-    [setSnapshot, upsertDevice, updateTelemetry, setDeviceStatus, addEvent, acknowledgeEvent, removeDevice, pushLog, devices]
+    [setSnapshot, upsertDevice, updateTelemetry, setDeviceStatus, addEvent, acknowledgeEvent, removeDevice, pushLog]
   )
 
   useWebSocket(handleMessage, 2000)

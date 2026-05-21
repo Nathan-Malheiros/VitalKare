@@ -23,6 +23,7 @@ from typing import Optional
 
 import vk_proto as vk
 import db
+import device_connections
 from ws_manager import ws_manager
 
 logger = logging.getLogger("vitalkare.tcp")
@@ -112,11 +113,14 @@ async def handle_connection(
                     continue
                 # consumed > 1 and frame is valid
                 del buf[:consumed]
+                prev_device_id = device_id
                 await _dispatch(frame, device_id, send, next_seq, audio_sessions, peer)
                 if frame.pkt_type == vk.Pkt.HANDSHAKE_HELLO:
                     # Update device_id after handshake
                     parsed = vk.parse_handshake_hello(frame.payload)
                     device_id = parsed.get("device_id") or device_id
+                    if device_id and device_id != prev_device_id:
+                        device_connections.register(device_id, send, next_seq)
 
     except ConnectionResetError:
         logger.info("Device %s reset connection", device_id or peer[0])
@@ -124,17 +128,33 @@ async def handle_connection(
         logger.exception("Unhandled error in TCP handler for %s: %s", device_id or peer[0], exc)
     finally:
         writer.close()
+        if device_id:
+            device_connections.unregister(device_id)
         # Close any open audio sessions
         for sess in audio_sessions.values():
             path = sess.close()
             await db.audio_session_end(sess.session_id, sess.chunk_count, path)
-        # Mark device OFFLINE
+        # Mark device offline — but preserve EMERGENCY so the banner stays visible
+        # until an operator explicitly confirms, even if the device disconnected.
         if device_id:
-            await db.update_device_status(device_id, "OFFLINE")
+            device = await db.get_device(device_id)
+            was_emergency = device and device.get("status") == "EMERGENCY"
+            if was_emergency:
+                # Keep EMERGENCY status in DB; just update last_seen.
+                await db.update_device_last_seen(device_id)
+                broadcast_status = "EMERGENCY"
+                logger.warning(
+                    "Device %s disconnected while in EMERGENCY — status preserved, "
+                    "operator acknowledgement required",
+                    device_id,
+                )
+            else:
+                await db.update_device_status(device_id, "OFFLINE")
+                broadcast_status = "OFFLINE"
             await ws_manager.broadcast({
                 "type": "device_status",
                 "device_id": device_id,
-                "status": "OFFLINE",
+                "status": broadcast_status,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             })
         logger.info("Connection closed for %s", device_id or peer[0])
