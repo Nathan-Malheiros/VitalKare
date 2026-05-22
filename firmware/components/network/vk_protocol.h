@@ -4,8 +4,8 @@
  *
  * ESTRUTURA DO PACOTE:
  * ┌──────────┬──────────┬──────────┬──────────┬──────────────────┬──────────┐
- * │ MAGIC[0] │ MAGIC[1] │ VERSION  │ PKT_TYPE │ PAYLOAD_LEN (4B) │ SEQ (2B) │
- * │  0x56    │  0x4B    │   0x01   │  uint8   │   uint32_le      │ uint16_le│
+ * │ MAGIC[0] │ MAGIC[1] │ VERSION  │ PKT_TYPE │ PAYLOAD_LEN (4B) │ SEQ (1B) │
+ * │  0x56    │  0x4B    │   0x01   │  uint8   │   uint32_le      │  uint8   │
  * ├──────────┴──────────┴──────────┴──────────┴──────────────────┴──────────┤
  * │                    PAYLOAD  (0..8192 bytes)                              │
  * ├─────────────────────────────────────────────────────────────────────────┤
@@ -103,7 +103,7 @@ typedef struct {
     uint8_t  version;       /**< VK_PROTOCOL_VERSION */
     uint8_t  pkt_type;      /**< pkt_type_t */
     uint32_t payload_len;   /**< Tamanho do payload em bytes (little-endian) */
-    uint16_t seq;           /**< Número de sequência (little-endian) */
+    uint8_t  seq;           /**< Número de sequência — 1 byte, sizeof(vk_header_t)==VK_HEADER_SIZE==9 */
 } vk_header_t;
 
 /* ── Payloads de pacotes específicos ── */

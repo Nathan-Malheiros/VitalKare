@@ -109,6 +109,15 @@ esp_err_t max30102_init(void)
         ESP_LOGE(TAG, "I2C bus não inicializado");
         return ESP_ERR_INVALID_STATE;
     }
+    /* Probe first — confirm device is present before registering on bus */
+    esp_err_t probe = i2c_master_probe(bus, MAX30102_I2C_ADDR, 100);
+    if (probe != ESP_OK) {
+        ESP_LOGE(TAG, "MAX30102 not found at 0x%02X (err=%s) — oximeter disabled",
+                 MAX30102_I2C_ADDR, esp_err_to_name(probe));
+        return ESP_ERR_NOT_FOUND;
+    }
+    ESP_LOGI(TAG, "[SENSOR] MAX30102 confirmed at 0x%02X", MAX30102_I2C_ADDR);
+
     i2c_device_config_t dev_cfg = {
         .dev_addr_length = I2C_ADDR_BIT_LEN_7,
         .device_address  = MAX30102_I2C_ADDR,
@@ -120,11 +129,16 @@ esp_err_t max30102_init(void)
         return ret;
     }
 
+    /* Short delay after power-on — MAX30102 needs ~1 ms to be ready */
+    vTaskDelay(pdMS_TO_TICKS(5));
+
     /* Verifica Part ID */
     uint8_t part_id = 0;
     ret = reg_read(REG_PART_ID, &part_id, 1);
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Falha ao ler Part ID: %s", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "Falha ao ler Part ID: %s — removendo device handle", esp_err_to_name(ret));
+        i2c_master_bus_rm_device(s_dev_handle);  /* prevent handle leak */
+        s_dev_handle = NULL;
         return ret;
     }
     if (part_id != MAX30102_PART_ID) {

@@ -430,10 +430,15 @@ static esp_err_t do_connect(void)
     strncpy(hello.fw_version,   APP_FIRMWARE_VERSION,   sizeof(hello.fw_version) - 1);
     hello.capabilities = VK_BOARD_CAPABILITIES;
 
+    ESP_LOGI(TAG_TX, "[HELLO] device_id=%s ward=%s fw=%s caps=0x%08X",
+             hello.device_id, hello.ward_id, hello.fw_version,
+             (unsigned)hello.capabilities);
+
     int flen = vk_frame_build(s_handshake_frame, sizeof(s_handshake_frame),
                               PKT_HANDSHAKE_HELLO, tcp_client_next_seq(),
                               &hello, sizeof(hello));
     if (flen <= 0 || !socket_send_all(s_handshake_frame, (size_t)flen)) {
+        ESP_LOGE(TAG_TX, "Falha ao enviar HELLO (flen=%d)", flen);
         do_disconnect(false);
         return ESP_FAIL;
     }
@@ -441,7 +446,7 @@ static esp_err_t do_connect(void)
     atomic_store(&s_state, TCP_STATE_HANDSHAKE);
     /* Ativa TCP_BIT_ACTIVE para que task_rx comece a ler */
     if (s_event_grp) xEventGroupSetBits(s_event_grp, TCP_BIT_ACTIVE);
-    ESP_LOGI(TAG_TX, "HELLO enviado — aguardando ACK");
+    ESP_LOGI(TAG_TX, "HELLO enviado (%d B) — aguardando ACK", flen);
     return ESP_OK;
 }
 
@@ -511,6 +516,7 @@ void task_tcp_tx(void *arg)
         }
 
         if (bits & TCP_BIT_RX_PONG) {
+            ESP_LOGD(TAG_TX, "[PONG] recebido — miss=%d → 0", s_ping_misses);
             s_ping_misses = 0;
         }
 
@@ -562,9 +568,11 @@ void task_tcp_tx(void *arg)
             if (flen > 0) socket_send_all(s_ping_frame, flen);
             s_last_ping_us = now_us;
             s_ping_misses++;
+            ESP_LOGI(TAG_TX, "[PING] enviado uptime=%lu ms miss=%d",
+                     (unsigned long)(now_us / 1000), s_ping_misses);
 
             if (s_ping_misses > APP_TCP_HEARTBEAT_MISS_MAX) {
-                ESP_LOGE(TAG_TX, "Heartbeat timeout (%d misses)", s_ping_misses);
+                ESP_LOGE(TAG_TX, "Heartbeat timeout (%d misses sem PONG)", s_ping_misses);
                 do_disconnect(true);
                 continue;
             }
@@ -679,6 +687,7 @@ void task_tcp_rx(void *arg)
                     event_post_critical(&evt, false);
 
                 } else if (ptype == PKT_HEARTBEAT_PONG) {
+                    ESP_LOGD(TAG_RX, "[PONG] recebido do backend");
                     xEventGroupSetBits(s_event_grp, TCP_BIT_RX_PONG);
 
                 } else {

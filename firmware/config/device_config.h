@@ -53,16 +53,35 @@
 #define DEVICE_MQTT_PORT        1883
 
 /* =========================================================
- * IDENTIDADE DO DISPOSITIVO (ajuste por placa)
+ * IDENTIDADE DO DISPOSITIVO (fallback se NVS não provisionada)
+ *
+ * Estes valores são usados APENAS quando a NVS não contém um valor
+ * válido (primeiro boot sem provision.py).  Em operação normal a NVS
+ * é a fonte de verdade — use provision.py para gravar os valores reais.
+ *
+ * IMPORTANTE: device_id e ward_id devem corresponder aos valores
+ * informados ao provision.py (padrão: "leito01" / "ala-a").
  * ========================================================= */
-#define DEVICE_ID               "LeitoKira3"
-#define DEVICE_WARD_ID          "ALAKIRA"
+#define DEVICE_ID               "leito01"
+#define DEVICE_WARD_ID          "ala-a"
 #define DEVICE_PATIENT_ID       "PAC-000"
 
-/* Set to 1 to overwrite NVS with the values above on every boot.
- * Use when NVS has stale values from a previous provision run.
- * Set back to 0 once the device is provisioned correctly. */
-#define DEVICE_CONFIG_FORCE_APPLY  1
+/* DEVICE_CONFIG_FORCE_APPLY = 1 reescreve a NVS com os valores acima
+ * em CADA boot.  Isso desfaz qualquer gravação feita pelo provision.py
+ * e força o servidor para DEVICE_SERVER_HOST, mesmo que o IP real seja
+ * diferente.
+ *
+ * Use 1 apenas para recuperar uma NVS corrompida ou fazer o primeiro
+ * boot sem provision.py.  Volte para 0 imediatamente após, ou o
+ * provision.py não terá efeito e a placa sempre usará os valores acima.
+ *
+ * FLUXO RECOMENDADO:
+ *   1. Mantenha DEVICE_CONFIG_FORCE_APPLY 0 (padrão).
+ *   2. Use provision.py para gravar SSID, senha, IP do servidor e
+ *      device_id na NVS da placa.
+ *   3. A placa lê a NVS em cada boot e se conecta ao servidor correto.
+ */
+#define DEVICE_CONFIG_FORCE_APPLY  0
 
 /* =========================================================
  * USUÁRIO MQTT (definido no mosquitto/passwd)

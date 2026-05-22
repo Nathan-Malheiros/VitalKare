@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(Get-ChildItem -Directory)",
-      "Bash(Select-Object Name)"
+      "Bash(Select-Object Name)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\natha\\\\OneDrive\\\\Documentos\\\\VitalKare\\\\firmware\" -Recurse -Directory)",
+      "Bash(Select-Object FullName)"
     ]
   }
 }

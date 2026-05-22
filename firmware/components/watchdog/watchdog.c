@@ -33,9 +33,13 @@ static const char *TAG = "WDT";
 
 esp_err_t watchdog_init(void)
 {
+    /* idle_core_mask=(1<<0)|(1<<1): keep both IDLE tasks subscribed to the TWDT.
+     * Setting mask=0 removes idle tasks from TWDT subscription while ESP-IDF
+     * internally still calls esp_task_wdt_reset() for them, producing the
+     * "task not found" warning on every idle tick. */
     esp_task_wdt_config_t cfg = {
         .timeout_ms      = APP_WDT_TIMEOUT_MS,
-        .idle_core_mask  = 0,
+        .idle_core_mask  = (1 << 0) | (1 << 1),
         .trigger_panic   = true,
     };
     esp_err_t ret = esp_task_wdt_reconfigure(&cfg);

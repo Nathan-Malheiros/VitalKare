@@ -150,6 +150,28 @@ esp_err_t oled_init(oled_ctx_t *ctx)
         return ret;
     }
 
+    /* Probe I2C address — verify SSD1306 is actually present */
+    ESP_LOGI(TAG, "[DISPLAY] Scanning I2C bus for SSD1306 at 0x%02X ...", SSD1306_I2C_ADDR);
+    esp_err_t probe = i2c_master_probe(i2c_bus_get_handle(), SSD1306_I2C_ADDR, 100);
+    if (probe != ESP_OK) {
+        ESP_LOGE(TAG, "[DISPLAY] No device at 0x%02X (SDA=%d SCL=%d err=%s)",
+                 SSD1306_I2C_ADDR, HW_OLED_SDA_GPIO, HW_OLED_SCL_GPIO,
+                 esp_err_to_name(probe));
+        ESP_LOGI(TAG, "[DISPLAY] Scanning I2C bus 0x08-0x77 for any device...");
+        bool found_any = false;
+        for (uint8_t a = 0x08; a <= 0x77; a++) {
+            if (i2c_master_probe(i2c_bus_get_handle(), a, 20) == ESP_OK) {
+                ESP_LOGI(TAG, "[DISPLAY]   Found I2C device at 0x%02X", a);
+                found_any = true;
+            }
+        }
+        if (!found_any) {
+            ESP_LOGE(TAG, "[DISPLAY] No I2C devices found — check SDA/SCL wiring");
+        }
+        return ESP_ERR_NOT_FOUND;
+    }
+    ESP_LOGI(TAG, "[DISPLAY] Found SSD1306 at 0x%02X", SSD1306_I2C_ADDR);
+
     /* Registra SSD1306 no barramento */
     i2c_device_config_t dev_cfg = {
         .dev_addr_length = I2C_ADDR_BIT_LEN_7,

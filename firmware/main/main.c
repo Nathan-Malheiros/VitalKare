@@ -25,6 +25,7 @@
 #include "nvs_flash.h"
 #include "esp_system.h"
 #include "esp_timer.h"
+#include "esp_heap_caps.h"
 
 /* Configurações */
 #include "config/app_config.h"
@@ -148,6 +149,7 @@ static void on_wifi_connected(const system_event_t *evt)
     ESP_LOGI(TAG, "Wi-Fi conectado — iniciando TCP client");
     core_set_state(SYS_STATE_TCP_CONNECTING);
     system_manager_report_subsystem(SUBSYS_WIFI, true);
+    ui_set_screen(UI_SCREEN_TCP_CONNECTING);
     tcp_client_connect();
 }
 
@@ -388,11 +390,40 @@ static void create_tasks(void)
                 NULL, TASK_PRIO_SENSORS, NULL);
 #endif
 
-    /* Display OLED — passa contexto para a task (não pode ser NULL) */
+    /* Display OLED — passa contexto para a task (não pode ser NULL).
+     * CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=16384: stacks < 16 KB always use
+     * internal RAM.  With WiFi + prior tasks, internal RAM may be exhausted.
+     * On failure, retry with a PSRAM-allocated stack (safe for non-ISR tasks). */
     if (VK_BOARD_HAS_DISPLAY) {
-        xTaskCreate(task_display_update,
-                    "display", TASK_STACK_DISPLAY,
-                    &s_oled_ctx, TASK_PRIO_DISPLAY, NULL);
+        ESP_LOGI(TAG, "[DISPLAY] Creating display task — internal heap: %lu B, largest: %lu B",
+                 (unsigned long)esp_get_free_internal_heap_size(),
+                 (unsigned long)heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL));
+        BaseType_t disp_rc = xTaskCreate(task_display_update,
+                                         "display", TASK_STACK_DISPLAY,
+                                         &s_oled_ctx, TASK_PRIO_DISPLAY, NULL);
+        if (disp_rc != pdPASS) {
+            ESP_LOGW(TAG, "[DISPLAY] xTaskCreate from internal RAM failed — retrying with PSRAM stack");
+            /* Allocate stack from PSRAM, TCB from internal RAM */
+            StackType_t   *disp_stack = heap_caps_malloc(
+                TASK_STACK_DISPLAY * sizeof(StackType_t),
+                MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+            StaticTask_t  *disp_tcb   = heap_caps_malloc(
+                sizeof(StaticTask_t),
+                MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+            if (disp_stack && disp_tcb) {
+                xTaskCreateStaticPinnedToCore(task_display_update,
+                                              "display", TASK_STACK_DISPLAY,
+                                              &s_oled_ctx, TASK_PRIO_DISPLAY,
+                                              disp_stack, disp_tcb, tskNO_AFFINITY);
+                ESP_LOGI(TAG, "[DISPLAY] Display task created with PSRAM stack");
+            } else {
+                ESP_LOGE(TAG, "[DISPLAY] FATAL: cannot allocate display task stack — display disabled");
+                heap_caps_free(disp_stack);
+                heap_caps_free(disp_tcb);
+            }
+        } else {
+            ESP_LOGI(TAG, "[DISPLAY] Display task created OK (internal stack)");
+        }
     }
 
     /* Storage flush — only if SD actually mounted */
@@ -449,8 +480,10 @@ static void create_tasks(void)
                 "vk_rel", 3072,
                 NULL, TASK_PRIO_STORAGE - 1, NULL);
 
-    ESP_LOGI(TAG, "Tasks criadas. Heap livre: %lu bytes",
-             (unsigned long)esp_get_free_heap_size());
+    ESP_LOGI(TAG, "Tasks criadas. Heap total: %lu B | Internal: %lu B | Largest internal block: %lu B",
+             (unsigned long)esp_get_free_heap_size(),
+             (unsigned long)esp_get_free_internal_heap_size(),
+             (unsigned long)heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL));
 }
 
 /* =========================================================
@@ -504,11 +537,16 @@ void app_main(void)
     /* 9. Hardware periférico */
     init_hardware();
 
-    /* 9b. UI init — executado após o hardware OLED mas antes das tasks.
-     *  Garante que ui_set_screen() na sequência de boot funcione corretamente.
-     *  ui_init() é idempotente; a task de display chamará novamente sem problema. */
+    /* 9b. UI init + first render — gives immediate visual feedback before tasks start.
+     *  ui_init() is idempotent; the display task will call it again harmlessly.
+     *  ui_render() is safe here because: (a) app_main IS a FreeRTOS task so the
+     *  mutex works; (b) the display task hasn't been created yet so there is no
+     *  concurrent renderer. */
     if (VK_BOARD_HAS_DISPLAY) {
         ui_init(&s_oled_ctx);
+        /* Show BOOT splash immediately — first pixels on screen */
+        ui_set_screen(UI_SCREEN_BOOT);
+        ui_render(&s_oled_ctx);
     }
 
     /* 10. Offline journal — apenas se SD montou com sucesso */
@@ -526,6 +564,11 @@ void app_main(void)
     /* 11. Transição para WIFI_CONNECTING */
     core_set_state(SYS_STATE_WIFI_CONNECTING);
     ui_set_screen(UI_SCREEN_CONNECTING);
+    /* Render immediately so the screen updates before WiFi init (which can take a
+     * few hundred milliseconds before the display task gets its first CPU slice). */
+    if (VK_BOARD_HAS_DISPLAY) {
+        ui_render(&s_oled_ctx);
+    }
 
     /* 12. Wi-Fi — inicializa ANTES da câmera para evitar conflito de cache
      *  (esp_wifi_init → NVS read → spi_flash_op_lock suspende ICACHE+DCACHE;
@@ -536,14 +579,17 @@ void app_main(void)
                  esp_err_to_name(wifi_ret));
         core_set_state(SYS_STATE_OFFLINE);
         ui_set_screen(UI_SCREEN_OFFLINE);
+        if (VK_BOARD_HAS_DISPLAY) {
+            ui_render(&s_oled_ctx);
+        }
     }
 
-    /* 13. Câmera — inicializada APÓS WiFi */
-    if (VK_BOARD_HAS_CAMERA) {
-        camera_driver_init();
-    } else {
-        log_feature_skip("Camera OV5640");
-    }
+    // /* 13. Câmera — inicializada APÓS WiFi */
+    // if (VK_BOARD_HAS_CAMERA) {
+    //     camera_driver_init();
+    // } else {
+    //     log_feature_skip("Camera OV5640");
+    // }
 
     /* 14. Criar todas as tasks */
     create_tasks();

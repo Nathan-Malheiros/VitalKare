@@ -1,0 +1,35 @@
+Command: cmake -G Ninja -B C:\Users\natha\OneDrive\Documentos\VitalKare\firmware\build -DPYTHON_DEPS_CHECKED=1 -DPYTHON=C:\Users\natha\.espressif\python_env\idf6.0_py3.14_env\Scripts\python.exe -DESP_PLATFORM=1 -DCCACHE_ENABLE=True C:\Users\natha\OneDrive\Documentos\VitalKare\firmware
+Loading defaults file C:/Users/natha/OneDrive/Documentos/VitalKare/firmware/sdkconfig.defaults...
+C:\Users\natha\AppData\Local\Temp\kconfgen_tmp53wnrsuj:5 line was updated to # =========================================================n
+C:\Users\natha\AppData\Local\Temp\kconfgen_tmp53wnrsuj:7 line was updated to # =========================================================n
+C:\Users\natha\AppData\Local\Temp\kconfgen_tmp53wnrsuj:10 line was updated to # =========================================================n
+C:\Users\natha\AppData\Local\Temp\kconfgen_tmp53wnrsuj:12 line was updated to # =========================================================n
+C:\Users\natha\AppData\Local\Temp\kconfgen_tmp53wnrsuj:16 line was updated to # =========================================================n
+C:\Users\natha\AppData\Local\Temp\kconfgen_tmp53wnrsuj:18 line was updated to # =========================================================n
+C:\Users\natha\AppData\Local\Temp\kconfgen_tmp53wnrsuj:23 line was updated to # =========================================================n
+C:\Users\natha\AppData\Local\Temp\kconfgen_tmp53wnrsuj:25 line was updated to # =========================================================n
+C:\Users\natha\AppData\Local\Temp\kconfgen_tmp53wnrsuj:29 line was updated to # =========================================================n
+C:\Users\natha\AppData\Local\Temp\kconfgen_tmp53wnrsuj:31 line was updated to # =========================================================n
+C:\Users\natha\AppData\Local\Temp\kconfgen_tmp53wnrsuj:36 line was updated to # =========================================================n
+C:\Users\natha\AppData\Local\Temp\kconfgen_tmp53wnrsuj:38 line was updated to # =========================================================n
+C:\Users\natha\AppData\Local\Temp\kconfgen_tmp53wnrsuj:42 line was updated to # =========================================================n
+C:\Users\natha\AppData\Local\Temp\kconfgen_tmp53wnrsuj:44 line was updated to # =========================================================n
+C:\Users\natha\AppData\Local\Temp\kconfgen_tmp53wnrsuj:47 line was updated to # =========================================================n
+C:\Users\natha\AppData\Local\Temp\kconfgen_tmp53wnrsuj:49 line was updated to # =========================================================n
+C:\Users\natha\AppData\Local\Temp\kconfgen_tmp53wnrsuj:60 line was updated to # =========================================================n
+C:\Users\natha\AppData\Local\Temp\kconfgen_tmp53wnrsuj:62 line was updated to # =========================================================n
+C:\Users\natha\AppData\Local\Temp\kconfgen_tmp53wnrsuj:68 line was updated to # =========================================================n
+C:\Users\natha\AppData\Local\Temp\kconfgen_tmp53wnrsuj:70 line was updated to # =========================================================n
+C:\Users\natha\AppData\Local\Temp\kconfgen_tmp53wnrsuj:73 line was updated to # =========================================================n
+C:\Users\natha\AppData\Local\Temp\kconfgen_tmp53wnrsuj:75 line was updated to # =========================================================n
+info: C:\Users\natha\AppData\Local\Temp\kconfgen_tmp53wnrsuj:34 CONFIG_ESP32_WIFI_IRAM_OPT was replaced with CONFIG_ESP_WIFI_IRAM_OPT
+info: C:\Users\natha\AppData\Local\Temp\kconfgen_tmp53wnrsuj:50 CONFIG_ESP32S3_SPIRAM_SUPPORT was replaced with CONFIG_SPIRAM
+warning: unknown kconfig symbol 'CAMERA_USE_NEW_I2C_DRIVER' assigned to 'y' in C:/Users/natha/OneDrive/Documentos/VitalKare/firmware/sdkconfig.defaults
+Configuration Report               
++---------------------------------+
+|  Parser Version: 1              |
+|  Verbosity: default             |
+|  Defaults policy: sdkconfig     |
+|  Status: Finished successfully  |
+|                                 |
++---------------------------------+

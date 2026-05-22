@@ -213,6 +213,14 @@ async def _dispatch(
         # Broadcast new/reconnected device to dashboard
         updated = await db.get_device(dev_id)
         is_approved = bool(updated and updated.get("approved"))
+        logger.info(
+            "Device %s registered — status=%s approved=%s peer=%s:%d",
+            dev_id,
+            "ONLINE" if is_approved else "PENDING",
+            is_approved,
+            peer[0],
+            peer[1],
+        )
         await ws_manager.broadcast({
             "type": "device_status",
             "device_id": dev_id,
@@ -233,6 +241,7 @@ async def _dispatch(
 
     # ── Heartbeat ──────────────────────────────────────────
     if t == vk.Pkt.HEARTBEAT_PING:
+        logger.debug("PING from %s → sending PONG", device_id)
         pong = vk.build_pong(next_seq())
         await send(pong)
         await db.update_device_heartbeat(device_id)  # preserves EMERGENCY status
@@ -241,6 +250,9 @@ async def _dispatch(
     # ── Telemetry ──────────────────────────────────────────
     if t == vk.Pkt.TELEMETRY_ENV:
         data = vk.parse_telemetry_env(frame.payload)
+        logger.debug("TELEMETRY_ENV from %s: temp=%.1f°C hum=%.1f%% lux=%d",
+                     device_id, data.get("temperature_c", 0),
+                     data.get("humidity_pct", 0), data.get("light_lux", 0))
         await db.update_device_telemetry(device_id, data)
         await ws_manager.broadcast({
             "type": "telemetry",
@@ -252,6 +264,9 @@ async def _dispatch(
 
     if t == vk.Pkt.TELEMETRY_OXIMETER:
         data = vk.parse_telemetry_oximeter(frame.payload)
+        logger.debug("TELEMETRY_OXIMETER from %s: bpm=%d spo2=%d finger=%d",
+                     device_id, data.get("bpm", 0),
+                     data.get("spo2_pct", 0), data.get("finger_detected", 0))
         await db.update_device_telemetry(device_id, data)
         await ws_manager.broadcast({
             "type": "telemetry",
@@ -263,6 +278,9 @@ async def _dispatch(
 
     if t == vk.Pkt.TELEMETRY_SYSTEM:
         data = vk.parse_telemetry_system(frame.payload)
+        logger.debug("TELEMETRY_SYSTEM from %s: uptime=%dms rssi=%d heap=%d",
+                     device_id, data.get("uptime_ms", 0),
+                     data.get("rssi", 0), data.get("free_heap_bytes", 0))
         await db.update_device_telemetry(device_id, data)
         await ws_manager.broadcast({
             "type": "telemetry",

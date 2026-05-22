@@ -233,7 +233,9 @@ $<TARGET_FILE:idf::camera>
 $<TARGET_FILE:__idf_espressif__esp32-camera>
 $<TARGET_FILE:__idf_http_client>
 $<TARGET_FILE:idf::watchdog>
+$<TARGET_FILE:idf::simulation>
 $<TARGET_FILE:idf::main>
 $<TARGET_FILE:__idf_buttons>
 $<TARGET_FILE:__idf_camera>
 $<TARGET_FILE:__idf_watchdog>
+$<TARGET_FILE:__idf_simulation>

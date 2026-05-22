@@ -15,13 +15,14 @@
 
 typedef enum {
     UI_SCREEN_BOOT = 0,
-    UI_SCREEN_CONNECTING,
+    UI_SCREEN_CONNECTING,        /**< WiFi connecting */
+    UI_SCREEN_TCP_CONNECTING,    /**< WiFi OK, TCP connecting to backend */
     UI_SCREEN_OPERATIONAL,
     UI_SCREEN_EMERGENCY,
     UI_SCREEN_RECORDING,
     UI_SCREEN_OFFLINE,
     UI_SCREEN_ACK_RECEIVED,
-    UI_SCREEN_DIAGNOSTICS,  /**< Página de diagnóstico em tempo real */
+    UI_SCREEN_DIAGNOSTICS,       /**< Página de diagnóstico em tempo real */
 } ui_screen_id_t;
 
 typedef struct {
@@ -74,6 +75,9 @@ void ui_set_screen(ui_screen_id_t screen);
 
 /** @brief Atualiza dados da tela operacional. */
 void ui_update_operational_data(const ui_operational_data_t *data);
+
+/** @brief Atualiza apenas os campos de sensor (temp/hum/lux) sem tocar em WiFi/IP. */
+void ui_update_sensor_data(float temperature, float humidity, float lux);
 
 /** @brief Atualiza dados da tela de diagnóstico. Thread-safe. */
 void ui_update_diagnostics_data(const ui_diagnostics_data_t *data);

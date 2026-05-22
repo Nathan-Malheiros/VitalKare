@@ -89,6 +89,9 @@ esp_err_t camera_driver_init(void)
     };
 
     ESP_LOGI(TAG, "Iniciando camera OV5640 (QQVGA JPEG, 1 fb, PSRAM)...");
+    ESP_LOGI(TAG, "[CAMERA] DMA heap before init: free=%lu largest_block=%lu",
+             (unsigned long)heap_caps_get_free_size(MALLOC_CAP_DMA),
+             (unsigned long)heap_caps_get_largest_free_block(MALLOC_CAP_DMA));
     ret = esp_camera_init(&cfg);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "esp_camera_init falhou: %s — camera desativada",

@@ -105,14 +105,7 @@ void task_sensor_poll(void *arg)
                  hdc.temperature_celsius, hdc.humidity_percent, lux, motion, posture);
 
         /* --- Atualiza display OLED com leituras atuais --- */
-        {
-            ui_operational_data_t op = {0};
-            op.temperature = hdc.temperature_celsius;
-            op.humidity    = hdc.humidity_percent;
-            op.lux         = lux;
-            strncpy(op.device_id, DEVICE_ID, sizeof(op.device_id) - 1);
-            ui_update_operational_data(&op);
-        }
+        ui_update_sensor_data(hdc.temperature_celsius, hdc.humidity_percent, lux);
 
         /* --- Envia telemetria ambiental via TCP (lossy — descarta se offline) --- */
         pkt_telemetry_env_t env_pkt = {

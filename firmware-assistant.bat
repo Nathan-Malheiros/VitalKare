@@ -408,6 +408,7 @@ exit /b !IDF_EXIT!
 :set_last_result
 set "LAST_EXIT_CODE=%~3"
 set "LAST_RESULT=[%~1] %~2"
+
 exit /b 0
 
 :wait_and_return
